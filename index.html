@@ -1,0 +1,655 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#183c32">
+  <title>Dragons Hatched</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Nunito:wght@400;600;700;800;900&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      color-scheme: light;
+      --forest: #183c32;
+      --forest-2: #244e40;
+      --leaf: #dcedc5;
+      --leaf-light: #f0f5dd;
+      --paper: #fbf8eb;
+      --muted: #788776;
+      --line: #e4e6d5;
+      --orange: #e88750;
+      --gold: #efbd5b;
+      --white: #fffef8;
+      --shadow: 0 15px 50px rgba(27, 55, 42, .12);
+    }
+    * { box-sizing: border-box; }
+    html, body { width: 100%; height: 100%; margin: 0; overflow: hidden; }
+    body { background: var(--paper); color: var(--forest); font-family: "Nunito", sans-serif; }
+    button, select { font: inherit; }
+    button { color: inherit; }
+    #app { height: 100%; display: grid; grid-template-rows: 68px minmax(0, 1fr); }
+    .topbar {
+      position: relative; z-index: 3; display: flex; align-items: center; justify-content: space-between;
+      gap: 20px; padding: 0 26px; background: var(--forest); color: var(--white);
+      box-shadow: 0 4px 18px rgba(19, 50, 39, .13);
+    }
+    .brand { display: flex; align-items: center; gap: 11px; min-width: 220px; }
+    .brand-mark { width: 37px; height: 37px; display: grid; place-items: center; border: 1px solid #90b18b; border-radius: 12px 12px 12px 4px; color: #d8efa9; font-size: 19px; transform: rotate(-5deg); }
+    .brand-name { font-size: 15px; font-weight: 900; line-height: 1; letter-spacing: .07em; }
+    .brand-tag { margin-top: 5px; color: #b7cfb1; font: 9px "DM Mono", monospace; letter-spacing: .12em; }
+    .tag-small { display: none; }
+    .nav { display: flex; align-items: stretch; height: 100%; gap: 5px; }
+    .nav-button { position: relative; padding: 0 14px; border: 0; background: none; color: #c1d3c3; font-size: 12px; font-weight: 800; cursor: pointer; transition: color .18s; }
+    .nav-button:hover, .nav-button.active { color: #f5f2d9; }
+    .nav-button.active::after { position: absolute; content: ""; bottom: 0; left: 13px; right: 13px; height: 3px; border-radius: 3px 3px 0 0; background: #d7eba6; }
+    .wallet { display: flex; align-items: center; gap: 8px; min-width: 220px; justify-content: flex-end; color: #f6d47f; font: 12px "DM Mono", monospace; }
+    .bag-count { display: flex; align-items: center; gap: 7px; margin-left: 9px; padding: 7px 10px; border: 1px solid rgba(236, 244, 224, .2); border-radius: 7px; color: #edf4df; }
+    .bag-icon { color: #d7eba6; }
+    main { min-height: 0; display: grid; grid-template-columns: minmax(0, 1fr) 388px; }
+    .world { position: relative; min-width: 0; min-height: 0; overflow: hidden; background: #d2e7cb; }
+    #scene { position: absolute; inset: 0; }
+    #scene canvas { display: block; width: 100%; height: 100%; }
+    .scene-vignette { position: absolute; inset: 0; pointer-events: none; background: linear-gradient(180deg,rgba(248,250,231,.2),transparent 25%,transparent 72%,rgba(33,73,53,.13)); }
+    .scene-label { position: absolute; top: 24px; left: 25px; padding-left: 12px; border-left: 2px solid #698c62; pointer-events: none; }
+    .scene-label strong { display: block; font-size: 13px; font-weight: 900; letter-spacing: .03em; }
+    .scene-label span { display: block; margin-top: 3px; color: #547057; font: 9px "DM Mono",monospace; letter-spacing: .11em; }
+    .scene-tip { position: absolute; left: 25px; bottom: 20px; color: #47634d; font-size: 11px; font-weight: 700; pointer-events: none; }
+    .scene-tip .spark { color: #bd7936; padding-right: 5px; }
+    .view-tag { position: absolute; top: 20px; right: 21px; padding: 7px 10px; border: 1px solid rgba(65,102,71,.2); border-radius: 5px; color: #466548; background: rgba(247,249,230,.65); font: 9px "DM Mono",monospace; letter-spacing: .08em; }
+    .panel { position: relative; z-index: 1; overflow-y: auto; padding: 22px 22px 30px; background: var(--paper); border-left: 1px solid #e7e8d8; }
+    .panel::-webkit-scrollbar { width: 6px; }
+    .panel::-webkit-scrollbar-thumb { background: #ced9c2; border-radius: 9px; }
+    .panel-kicker { color: #71866b; font: 9px "DM Mono",monospace; letter-spacing: .14em; }
+    .panel h1 { margin: 6px 0 5px; font-size: 22px; line-height: 1.15; font-weight: 900; }
+    .panel-intro { margin: 0; color: #788776; font-size: 12px; line-height: 1.55; }
+    .rule { height: 1px; margin: 17px 0; background: var(--line); }
+    .section-heading { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin-bottom: 10px; }
+    .section-heading h2 { margin: 0; font-size: 12px; font-weight: 900; letter-spacing: .03em; }
+    .section-note { color: var(--muted); font: 9px "DM Mono",monospace; }
+    .egg-grid { display: grid; grid-template-columns: repeat(3,minmax(0,1fr)); gap: 7px; }
+    .egg-choice { min-width: 0; display: flex; align-items: center; gap: 7px; padding: 8px 7px; border: 1px solid var(--line); border-radius: 7px; background: #fffef8; text-align: left; cursor: pointer; transition: border .16s,background .16s,transform .16s; }
+    .egg-choice:hover { transform: translateY(-1px); border-color: #9cb48c; }
+    .egg-choice.selected { border-color: #527d57; background: #eaf1d9; box-shadow: inset 0 0 0 1px #527d57; }
+    .egg-swatch { flex: 0 0 20px; width: 20px; height: 24px; border-radius: 55% 55% 48% 48% / 44% 44% 56% 56%; background: var(--egg-color); box-shadow: inset -4px -3px 0 rgba(34,48,38,.14), inset 3px 2px 0 rgba(255,255,255,.55); }
+    .egg-choice-name { overflow: hidden; text-overflow: ellipsis; font-size: 10px; font-weight: 900; }
+    .egg-choice-cost { display: block; margin-top: 2px; color: #798879; font: 8px "DM Mono",monospace; }
+    .primary, .secondary, .quiet-button { min-height: 39px; display: inline-flex; align-items: center; justify-content: center; gap: 7px; padding: 0 14px; border-radius: 6px; font-size: 11px; font-weight: 900; cursor: pointer; transition: transform .16s,background .16s,border .16s; }
+    .primary { border: 1px solid var(--forest); background: var(--forest); color: white; }
+    .primary:hover:not(:disabled) { transform: translateY(-1px); background: #2a5b47; }
+    .secondary { border: 1px solid #cbd7bf; background: #edf2df; color: var(--forest); }
+    .secondary:hover:not(:disabled) { background: #e1ebcd; }
+    .quiet-button { min-height: 30px; padding: 0 9px; border: 1px solid var(--line); background: transparent; color: #506750; font-size: 10px; }
+    button:disabled { opacity: .43; cursor: not-allowed; }
+    .full { width: 100%; }
+    .button-row { display: flex; gap: 8px; }
+    .button-row > * { flex: 1; }
+    .selection-detail { min-height: 35px; margin: 9px 0 11px; color: #71806f; font-size: 10px; line-height: 1.5; }
+    .notice { margin: 11px 0 0; padding: 9px 10px; border-radius: 5px; background: #f0f0dd; color: #657260; font-size: 10px; line-height: 1.45; }
+    .slots { display: grid; grid-template-columns: repeat(5,1fr); gap: 6px; }
+    .slot { min-width: 0; height: 47px; display: flex; align-items: center; justify-content: center; border: 1px dashed #d2d9c7; border-radius: 6px; background: rgba(255,255,250,.72); color: #83917e; font-size: 10px; }
+    .slot.filled { border-style: solid; border-color: #d8dfce; background: #f3f4e7; color: #415e46; font-size: 9px; font-weight: 800; text-align: center; line-height: 1.15; overflow-wrap: anywhere; padding: 3px; }
+    .dragon-card { padding: 11px 12px; border: 1px solid var(--line); border-radius: 8px; background: #fffef8; }
+    .dragon-top { display: flex; justify-content: space-between; gap: 8px; align-items: center; }
+    .dragon-name { font-size: 14px; font-weight: 900; }
+    .stage-pill { padding: 4px 7px; border-radius: 20px; background: #e6eed5; color: #4a714d; font: 9px "DM Mono",monospace; }
+    .parent-line { margin-top: 2px; color: #82907d; font-size: 10px; }
+    .meter-row { display: grid; grid-template-columns: 58px 1fr 25px; gap: 7px; align-items: center; margin-top: 10px; color: #657360; font-size: 9px; }
+    .meter { height: 5px; overflow: hidden; border-radius: 6px; background: #e9ebdc; }
+    .meter-fill { width: 0; height: 100%; border-radius: inherit; background: #8dbb75; transition: width .2s; }
+    .meter-fill.joy { background: #e9ad63; }
+    .meter-fill.energy { background: #81b9b7; }
+    .meter-value { text-align: right; color: #788776; font: 8px "DM Mono",monospace; }
+    .action-grid { display: grid; grid-template-columns: repeat(2,1fr); gap: 7px; }
+    .care-action { min-height: 55px; display: flex; align-items: center; gap: 9px; padding: 8px 10px; border: 1px solid #e2e5d5; border-radius: 7px; background: #fffef8; text-align: left; cursor: pointer; }
+    .care-action:hover:not(:disabled) { border-color: #aec19d; background: #f4f5e8; }
+    .care-icon { width: 26px; height: 26px; flex: 0 0 26px; display: grid; place-items: center; border-radius: 8px; background: #e9efd9; color: #587b55; font-size: 13px; }
+    .care-action strong { display: block; font-size: 10px; font-weight: 900; }
+    .care-action small { display: block; margin-top: 2px; color: #81907c; font-size: 8px; }
+    .dragon-select, .select { width: 100%; height: 38px; margin: 9px 0; padding: 0 9px; border: 1px solid #dfe3d3; border-radius: 6px; background: #fffef8; color: #294b39; font-size: 11px; }
+    .shop-list { display: grid; gap: 7px; }
+    .shop-item { display: grid; grid-template-columns: 31px 1fr auto; align-items: center; gap: 9px; padding: 9px; border: 1px solid var(--line); border-radius: 7px; background: #fffef8; }
+    .shop-icon { width: 30px; height: 30px; display: grid; place-items: center; border-radius: 9px; background: #eef0dd; font-size: 16px; }
+    .shop-name { font-size: 10px; font-weight: 900; }
+    .shop-desc { margin-top: 2px; color: #81907c; font-size: 9px; }
+    .shop-buy { padding: 6px 8px; border: 1px solid #d6deca; border-radius: 5px; background: #edf2df; color: #335340; font: 9px "DM Mono",monospace; cursor: pointer; }
+    .shop-buy:hover:not(:disabled) { background: #e0eacd; }
+    .empty-state { padding: 17px 12px; border: 1px dashed #d5dccb; border-radius: 7px; color: #788776; text-align: center; font-size: 11px; line-height: 1.5; }
+    .inventory-label { margin-bottom: 8px; }
+    .toast { position: fixed; z-index: 8; left: 50%; bottom: 22px; transform: translate(-50%,8px); padding: 9px 14px; border-radius: 20px; background: #244e40; color: #fffde8; box-shadow: var(--shadow); font-size: 11px; font-weight: 800; opacity: 0; pointer-events: none; transition: opacity .2s,transform .2s; }
+    .toast.show { transform: translate(-50%,0); opacity: 1; }
+    @media (max-width: 920px) {
+      main { grid-template-columns: minmax(0,1fr) 350px; }
+      .topbar { padding: 0 17px; gap: 10px; }
+      .brand,.wallet { min-width: 175px; }
+      .nav-button { padding: 0 9px; }
+    }
+    @media (max-width: 700px) {
+      html,body { height: 100%; overflow: hidden; }
+      #app { grid-template-rows: 59px minmax(0,1fr); }
+      .topbar { padding: 0 11px; gap: 4px; }
+      .brand { min-width: unset; gap: 7px; }
+      .brand-mark { width: 32px; height: 32px; font-size: 16px; }
+      .brand-name { font-size: 11px; }
+      .brand-tag { font-size: 7px; }
+      .wallet { min-width: unset; font-size: 10px; gap: 4px; }
+      .bag-count { margin-left: 2px; padding: 5px 6px; font-size: 9px; }
+      main { display: flex; flex-direction: column; }
+      .world { flex: 0 0 37%; min-height: 185px; }
+      .scene-label { top: 12px; left: 13px; }
+      .scene-label strong { font-size: 11px; }
+      .scene-label span { font-size: 8px; }
+      .scene-tip { left: 13px; bottom: 10px; font-size: 9px; }
+      .view-tag { top: 11px; right: 11px; font-size: 8px; }
+      .panel { flex: 1; padding: 15px 15px 28px; border-left: 0; border-top: 1px solid #e7e8d8; }
+      .panel h1 { font-size: 19px; }
+      .rule { margin: 12px 0; }
+      .egg-grid { gap: 6px; }
+      .egg-choice { padding: 6px; gap: 5px; }
+      .egg-choice-name { font-size: 9px; }
+      .egg-swatch { flex-basis: 18px; width: 18px; height: 22px; }
+    }
+    @media (max-width: 400px) {
+      .brand { gap: 5px; }
+      .brand-mark { width: 29px; height: 29px; }
+      .brand-name { font-size: 9px; white-space: nowrap; }
+      .brand-tag { display: block; font-size: 7px; letter-spacing: .04em; }
+      .tag-wide { display: none; }
+      .tag-small { display: inline; }
+      .nav { gap: 0; }
+      .nav-button { padding: 0 4px; font-size: 9px; white-space: nowrap; }
+      .wallet { gap: 3px; font-size: 9px; }
+      .wallet .coin-label { display: none; }
+      .bag-count { gap: 4px; margin-left: 1px; padding: 4px 5px; white-space: nowrap; }
+      .egg-choice { gap: 4px; }
+    }
+  </style>
+</head>
+<body>
+  <div id="app">
+    <header class="topbar">
+      <div class="brand"><div class="brand-mark" aria-hidden="true">&#10022;</div><div><div class="brand-name">DRAGONS HATCHED</div><div class="brand-tag"><span class="tag-wide">AGES 5+ · A LITTLE WORLD OF YOUR OWN</span><span class="tag-small">AGES 5+</span></div></div></div>
+      <nav class="nav" aria-label="Game areas">
+        <button class="nav-button active" data-view="home">Hatchery</button>
+        <button class="nav-button" data-view="store">Store</button>
+        <button class="nav-button" data-view="pair">Pairing</button>
+        <button class="nav-button" data-view="alchemy">Alchemy</button>
+      </nav>
+      <div class="wallet"><span aria-hidden="true">&#9672;</span><span class="coin-label">SUN COINS</span><strong id="coins">8</strong><span class="bag-count"><span class="bag-icon">&#9634;</span><span id="bag-count">0/5</span></span></div>
+    </header>
+    <main>
+      <section class="world" aria-label="Three-dimensional dragon habitat">
+        <div id="scene"></div><div class="scene-vignette"></div>
+        <div class="scene-label"><strong id="scene-title">The Fernlight Hatchery</strong><span id="scene-subtitle">A SAFE PLACE TO BEGIN</span></div>
+        <div class="view-tag" id="view-tag">YOUR FIRST EGG</div>
+        <div class="scene-tip" id="scene-tip"><span class="spark">&#10022;</span>Pick an egg to begin your story</div>
+      </section>
+      <aside class="panel" id="panel" aria-live="polite"></aside>
+    </main>
+  </div>
+  <div class="toast" id="toast" role="status"></div>
+
+  <script type="module">
+    import * as THREE from 'https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js';
+
+    const TYPES = {
+      Fire:      { color:'#ef7049', accent:'#ffd378', skill:'Warmth', desc:'A bright-hearted dragon with a little flame to share.' },
+      Water:     { color:'#56a9c5', accent:'#b3eaf0', skill:'Splash', desc:'A gentle swimmer who can send water tumbling.' },
+      Earth:     { color:'#92764f', accent:'#d6c28a', skill:'Stone', desc:'A sturdy friend who can shift rocks out of the way.' },
+      Air:       { color:'#a4c9d2', accent:'#e5f4dd', skill:'Gust', desc:'A breezy flier who can sweep leaves aside.' },
+      Lightning: { color:'#d9b945', accent:'#fff0a0', skill:'Spark', desc:'A quick little dragon with a crackly surprise.' },
+      Lava:      { color:'#b95040', accent:'#f6a14c', skill:'Melt', desc:'A brave dragon with a warm, glowing core.' },
+      Forest:    { color:'#588b55', accent:'#b7d879', skill:'Bloom', desc:'A leafy friend who helps new things grow.' },
+      Amethyst:  { color:'#9279bd', accent:'#dbc4f4', skill:'Shimmer', desc:'A thoughtful dragon with a twinkly crystal glow.' },
+      Diamond:   { color:'#70b8b2', accent:'#d4f7ed', skill:'Prism', desc:'A sparkling dragon who sends rainbows dancing.' }
+    };
+    const TYPES_LIST = Object.keys(TYPES);
+    const STAGES = [
+      { name:'Baby', min:0, scale:.69 }, { name:'Child', min:4, scale:.82 },
+      { name:'Teenager', min:10, scale:1 }, { name:'Adult', min:18, scale:1.16 }, { name:'Elder', min:28, scale:1.28 }
+    ];
+    const newState = () => ({ coins:8, inventory:[], dragons:[], selectedDragon:null, selectedEgg:null, firstPick:true, incubator:null, lastCare:Date.now(), nextId:1 });
+    let state;
+    try { state = { ...newState(), ...JSON.parse(localStorage.getItem('dragonsHatchedSave') || '{}') }; }
+    catch { state = newState(); }
+    state.inventory ||= []; state.dragons ||= [];
+    const save = () => localStorage.setItem('dragonsHatchedSave', JSON.stringify(state));
+    const $ = selector => document.querySelector(selector);
+    const panel = $('#panel');
+    const sceneHost = $('#scene');
+    let currentView = 'home';
+    let toastTimer;
+
+    function say(message) {
+      const toast = $('#toast'); toast.textContent = message; toast.classList.add('show');
+      clearTimeout(toastTimer); toastTimer = setTimeout(() => toast.classList.remove('show'), 1900);
+    }
+    function stageOf(dragon) {
+      return [...STAGES].reverse().find(stage => dragon.xp >= stage.min) || STAGES[0];
+    }
+    function selectedDragon() { return state.dragons.find(dragon => dragon.id === state.selectedDragon) || state.dragons[0] || null; }
+    function inventoryCount() { return state.inventory.length; }
+    function addItem(item) {
+      if (inventoryCount() >= 5) { say('Your bag is full. Use an item first.'); return false; }
+      state.inventory.push(item); save(); return true;
+    }
+    function typeLabel(type) { return type.split('+').join(' + '); }
+    function dragonName(dragon) { return dragon.name || `${dragon.type}ling`; }
+    function hasAdult() { return state.dragons.some(dragon => stageOf(dragon).name === 'Adult' || stageOf(dragon).name === 'Elder'); }
+    function renderHeader() {
+      $('#coins').textContent = state.coins;
+      $('#bag-count').textContent = `${inventoryCount()}/5`;
+      document.querySelectorAll('.nav-button').forEach(button => button.classList.toggle('active', button.dataset.view === currentView));
+    }
+    function eggColor(type) {
+      const colors = type.split('+').map(part => TYPES[part]?.color).filter(Boolean);
+      return colors.length > 1 ? `linear-gradient(115deg,${colors.join(',')})` : colors[0] || '#d6a75b';
+    }
+    function inventoryMarkup() {
+      const slots = Array.from({length:5}, (_,index) => state.inventory[index]
+        ? `<div class="slot filled" title="${escapeHtml(itemName(state.inventory[index]))}">${escapeHtml(itemName(state.inventory[index]))}</div>`
+        : '<div class="slot" aria-label="Empty inventory slot">&#183;</div>').join('');
+      return `<div class="section-heading inventory-label"><h2>YOUR BAG</h2><span class="section-note">${inventoryCount()} OF 5 SLOTS</span></div><div class="slots">${slots}</div>`;
+    }
+    function itemName(item) {
+      if (item.kind === 'egg') return `${typeLabel(item.type)} egg`;
+      if (item.kind === 'treat') return 'Treat';
+      return 'Item';
+    }
+    function readyEggsMarkup() {
+      const eggs = state.inventory.map((item,index)=>({item,index})).filter(entry=>entry.item.kind==='egg');
+      if (!eggs.length) return '';
+      return `<div class="section-heading" style="margin-top:15px"><h2>EGGS READY TO HATCH</h2><span class="section-note">CHOOSE ONE</span></div>
+        <div class="shop-list">${eggs.map(({item,index})=>`<div class="shop-item"><span class="egg-swatch" style="--egg-color:${eggColor(item.type)};margin:auto"></span><div><div class="shop-name">${escapeHtml(typeLabel(item.type))} egg</div><div class="shop-desc">${item.type.includes('+')?'Multi-egg':'Classic egg'}</div></div><button class="shop-buy" data-incubate="${index}">Furnace</button></div>`).join('')}</div>`;
+    }
+    function escapeHtml(value) {
+      return String(value).replace(/[&<>"']/g, char => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[char]));
+    }
+    function eggPicker() {
+      const canChooseFree = state.firstPick && state.dragons.length === 0 && !state.incubator;
+      return `<div class="section-heading"><h2>CHOOSE AN EGG</h2><span class="section-note">${canChooseFree ? 'YOUR FIRST IS A GIFT' : 'CLASSIC EGGS'}</span></div>
+        <div class="egg-grid">${TYPES_LIST.map(type => `<button class="egg-choice ${state.selectedEgg === type ? 'selected':''}" data-egg="${type}" aria-pressed="${state.selectedEgg === type}" style="--egg-color:${TYPES[type].color}"><span class="egg-swatch"></span><span><span class="egg-choice-name">${type}</span><span class="egg-choice-cost">${canChooseFree ? 'FREE' : '4 COINS'}</span></span></button>`).join('')}</div>
+        <p class="selection-detail">${state.selectedEgg ? TYPES[state.selectedEgg].desc : 'Every egg has its own look and a special skill.'}</p>
+        <button class="primary full" id="choose-egg" ${state.selectedEgg ? '' : 'disabled'}>${canChooseFree ? 'Choose this egg' : 'Buy this egg · 4 coins'}</button>`;
+    }
+    function meter(label, value, kind) {
+      return `<div class="meter-row"><span>${label}</span><div class="meter"><div class="meter-fill ${kind}" style="width:${Math.max(0,Math.min(100,value))}%"></div></div><span class="meter-value">${Math.round(value)}%</span></div>`;
+    }
+    function dragonPanel(dragon) {
+      const stage = stageOf(dragon);
+      const next = STAGES.find(item => item.min > dragon.xp);
+      const progress = next ? Math.min(100, (dragon.xp-stage.min)/(next.min-stage.min)*100) : 100;
+      const skills = dragon.type.split('+').map(type => TYPES[type]?.skill).filter(Boolean);
+      const practiceSkill = skills[(dragon.skillXp || 0) % skills.length] || 'magic';
+      const dragonPicker = state.dragons.length > 1 ? `<label class="section-note" for="select-dragon">YOUR DRAGONS</label><select class="dragon-select" id="select-dragon">${state.dragons.map(item=>`<option value="${item.id}" ${item.id===dragon.id?'selected':''}>${escapeHtml(dragonName(item))} · ${escapeHtml(stageOf(item).name)}</option>`).join('')}</select>` : '';
+      return `${dragonPicker}<div class="section-heading"><h2>YOUR DRAGON</h2><span class="section-note">${escapeHtml(typeLabel(dragon.type).toUpperCase())}</span></div>
+        <div class="dragon-card"><div class="dragon-top"><div><div class="dragon-name">${escapeHtml(dragonName(dragon))}</div><div class="parent-line">${escapeHtml(typeLabel(dragon.type))} dragon · ${skills.map(escapeHtml).join(' + ')}</div></div><span class="stage-pill">${stage.name.toUpperCase()}</span></div>
+          ${meter('HUNGER',dragon.hunger,'')}${meter('HAPPINESS',dragon.joy,'joy')}${meter('ENERGY',dragon.energy,'energy')}
+          <div class="meter-row"><span>GROWING</span><div class="meter"><div class="meter-fill" style="width:${progress}%"></div></div><span class="meter-value">${next ? `${dragon.xp}/${next.min}` : 'MAX'}</span></div>
+        </div>
+        <div class="section-heading" style="margin-top:15px"><h2>CARE & TRAINING</h2><span class="section-note">KINDNESS HELPS THEM GROW</span></div>
+        <div class="action-grid">
+          <button class="care-action" id="feed" ${dragon.hunger>88?'disabled':''}><span class="care-icon">&#9829;</span><span><strong>Give a treat</strong><small>Fill their tummy</small></span></button>
+          <button class="care-action" id="cuddle" ${dragon.joy>92?'disabled':''}><span class="care-icon">&#10084;</span><span><strong>Have a cuddle</strong><small>Make them smile</small></span></button>
+          <button class="care-action" id="train" ${dragon.energy<18?'disabled':''}><span class="care-icon">&#10022;</span><span><strong>Practice ${escapeHtml(practiceSkill)}</strong><small>Try a little obstacle</small></span></button>
+          <button class="care-action" id="rest" ${dragon.energy>85?'disabled':''}><span class="care-icon">&#9788;</span><span><strong>Take a nap</strong><small>Rest and recharge</small></span></button>
+        </div>
+        ${stage.name === 'Adult' || stage.name === 'Elder' ? '<p class="notice">Your grown dragon can pair with another grown friend or help unlock the egg-mixing machine.</p>' : `<p class="notice">Next up: ${next ? escapeHtml(next.name) : 'A wise elder'} · earn care and practice points to grow.</p>`}`;
+    }
+    function incubationPanel() {
+      const incubator = state.incubator;
+      const turns = incubator.turned || 0;
+      const pct = Math.min(100, (incubator.day/5)*100);
+      return `<div class="panel-kicker">THE LITTLE FURNACE</div><h1>Egg incubation</h1><p class="panel-intro">A cozy, safe warmth helps your egg grow. Come back when it wiggles and give it a gentle turn.</p>
+        <div class="rule"></div><div class="dragon-card" style="text-align:center;padding:17px">
+          <span class="stage-pill">${incubator.awaitTurn ? 'A TURN IS NEEDED' : `DAY ${Math.min(5,incubator.day)} OF 5`}</span>
+          <div style="height:10px;margin-top:16px;border-radius:10px;background:#e9ebdc;overflow:hidden"><div class="meter-fill" style="width:${pct}%;height:100%"></div></div>
+          <div style="margin-top:9px;color:#788776;font-size:10px">${incubator.awaitTurn ? 'The egg is ready to turn over.' : 'The furnace is warm and humming.'}</div>
+          <div class="rule"></div><div style="font-size:11px;font-weight:900">${escapeHtml(typeLabel(incubator.type))} egg</div><div class="parent-line">Turned ${turns} times</div>
+        </div>
+        ${incubator.awaitTurn ? '<button class="primary full" id="turn-egg" style="margin-top:12px">&#8635; Turn the egg</button>' : '<div class="notice">Days pass quickly here. You can look around while your egg gets ready.</div>'}
+        <button class="secondary full" id="hatchery-back" style="margin-top:8px">Back to hatchery</button>`;
+    }
+    function storePanel() {
+      return `<div class="panel-kicker">A GOOD PLACE TO FIND THINGS</div><h1>Little Acorn Store</h1><p class="panel-intro">Classic eggs and small treats for your dragon. Your bag holds five things at a time.</p><div class="rule"></div>
+        <div class="shop-list">${TYPES_LIST.map(type => `<div class="shop-item"><span class="egg-swatch" style="--egg-color:${TYPES[type].color};margin:auto"></span><div><div class="shop-name">${type} egg</div><div class="shop-desc">${escapeHtml(TYPES[type].skill)} skill · classic</div></div><button class="shop-buy" data-buy-egg="${type}" ${state.coins<4||inventoryCount()>=5?'disabled':''}>4 &#9672;</button></div>`).join('')}
+          <div class="shop-item"><span class="shop-icon">&#9829;</span><div><div class="shop-name">Treat bundle</div><div class="shop-desc">Three crunchy treats</div></div><button class="shop-buy" id="buy-treats" ${state.coins<2||inventoryCount()>=5?'disabled':''}>2 &#9672;</button></div></div>
+        <div class="rule"></div>${inventoryMarkup()}<p class="notice">A grown-up can help with coin purchases. Your first egg is a gift!</p>`;
+    }
+    function pairingPanel() {
+      const adults = state.dragons.filter(dragon => ['Adult','Elder'].includes(stageOf(dragon).name));
+      if (adults.length < 2) return `<div class="panel-kicker">A NEW GENERATION</div><h1>Dragon pairing</h1><p class="panel-intro">Two grown dragons can start a family. Their little egg carries a piece of both parents.</p><div class="rule"></div><div class="empty-state">${adults.length === 0 ? 'Your dragons need to grow into adults first.' : 'One more dragon needs to grow up before pairing.'}<br><br>${state.dragons.length ? 'Keep caring for them in the hatchery.' : 'Choose an egg and hatch your first dragon to begin.'}</div>${inventoryMarkup()}`;
+      const first = adults[0], second = adults.find(dragon => dragon.id !== first.id) || adults[1];
+      return `<div class="panel-kicker">A NEW GENERATION</div><h1>Dragon pairing</h1><p class="panel-intro">Pick two grown friends to make a decorated egg with a blend of their forms.</p><div class="rule"></div>
+        <div class="section-heading"><h2>PARENTS</h2><span class="section-note">${adults.length} READY</span></div>
+        <label class="section-note" for="parent-one">FIRST DRAGON</label><select class="select" id="parent-one">${adults.map(dragon => `<option value="${dragon.id}">${escapeHtml(dragonName(dragon))} · ${escapeHtml(dragon.type)}</option>`).join('')}</select>
+        <label class="section-note" for="parent-two">SECOND DRAGON</label><select class="select" id="parent-two">${adults.map(dragon => `<option value="${dragon.id}" ${dragon.id===second.id?'selected':''}>${escapeHtml(dragonName(dragon))} · ${escapeHtml(dragon.type)}</option>`).join('')}</select>
+        <p class="notice">Different forms make a hybrid with both parents' skills. The egg needs one free bag slot.</p><button class="primary full" id="breed" ${inventoryCount()>=5?'disabled':''}>&#10084; Make a family egg</button><div class="rule"></div>${inventoryMarkup()}`;
+    }
+    function alchemyPanel() {
+      const eggs = state.inventory.map((item,index)=>({item,index})).filter(entry=>entry.item.kind==='egg');
+      const unlocked = hasAdult();
+      if (!unlocked) return `<div class="panel-kicker">A LITTLE BIT OF MAGIC</div><h1>Egg mixer</h1><p class="panel-intro">This magical machine appears when one of your dragons becomes an adult.</p><div class="rule"></div><div class="empty-state">Keep caring for your dragon. When they grow up, the egg mixer will wake.</div>${inventoryMarkup()}`;
+      if (eggs.length < 2) return `<div class="panel-kicker">A LITTLE BIT OF MAGIC</div><h1>Egg mixer</h1><p class="panel-intro">Combine two eggs to make a special multi-egg. Their colors and decorations will mix together.</p><div class="rule"></div><div class="empty-state">The machine needs two eggs in your bag.<br><br>Visit the store or pair your dragons to find more.</div>${inventoryMarkup()}`;
+      return `<div class="panel-kicker">A LITTLE BIT OF MAGIC</div><h1>Egg mixer</h1><p class="panel-intro">Combine two eggs to make a special multi-egg. Their colors and decorations will mix together.</p><div class="rule"></div>
+        <div class="section-heading"><h2>CHOOSE TWO EGGS</h2><span class="section-note">MULTI-EGG MAGIC</span></div>
+        <label class="section-note" for="mix-one">FIRST EGG</label><select class="select egg-select" id="mix-one">${eggs.map((entry,i)=>`<option value="${entry.index}">${escapeHtml(typeLabel(entry.item.type))} egg</option>`).join('')}</select>
+        <label class="section-note" for="mix-two">SECOND EGG</label><select class="select egg-select" id="mix-two">${eggs.map((entry,i)=>`<option value="${entry.index}" ${i===1?'selected':''}>${escapeHtml(typeLabel(entry.item.type))} egg</option>`).join('')}</select>
+        <button class="primary full" id="mix-eggs">&#10022; Mix the eggs</button><p class="notice">A multi-egg's dragon inherits the forms and skills of both eggs.</p><div class="rule"></div>${inventoryMarkup()}`;
+    }
+    function renderHome() {
+      const dragon = selectedDragon();
+      if (state.incubator) { panel.innerHTML = incubationPanel(); bindIncubator(); return; }
+      const firstEggFree = state.firstPick && state.dragons.length===0;
+      panel.innerHTML = `<div class="panel-kicker">WELCOME TO YOUR HATCHERY</div><h1>${dragon ? `Hello, ${escapeHtml(dragonName(dragon))}!` : 'Pick your first dragon egg'}</h1><p class="panel-intro">${dragon ? 'A good day to spend a little time together.' : 'Every dragon begins as an egg. Which little friend will you welcome?'} </p><div class="rule"></div>
+        ${dragon ? `${dragonPanel(dragon)}${readyEggsMarkup()}` : `${eggPicker()}<p class="notice">Set your egg in the warm furnace to begin incubation. A little turning helps it hatch!</p>`}
+        <div class="rule"></div>${inventoryMarkup()}`;
+      if (!dragon) bindEggPicker(); else bindCare(dragon);
+      bindReadyEggs();
+    }
+    function render() {
+      renderHeader();
+      if (currentView === 'home') renderHome();
+      if (currentView === 'store') { panel.innerHTML = storePanel(); bindStore(); }
+      if (currentView === 'pair') { panel.innerHTML = pairingPanel(); bindPairing(); }
+      if (currentView === 'alchemy') { panel.innerHTML = alchemyPanel(); bindAlchemy(); }
+      updateWorld();
+    }
+    function bindEggPicker() {
+      document.querySelectorAll('[data-egg]').forEach(button => button.addEventListener('click', () => {
+        state.selectedEgg = button.dataset.egg; updateWorld(); render();
+      }));
+      $('#choose-egg')?.addEventListener('click', () => {
+        if (!state.selectedEgg) return;
+        const free = state.firstPick && state.dragons.length===0;
+        if (!free && state.coins < 4) { say('You need 4 sun coins for a classic egg.'); return; }
+        if (inventoryCount() >= 5) { say('Your bag is full.'); return; }
+        if (!free) state.coins -= 4;
+        state.firstPick = false;
+        state.inventory.push({kind:'egg',type:state.selectedEgg,parents:[state.selectedEgg]});
+        const treat = state.inventory.find(item=>item.kind==='treat');
+        if (!treat && inventoryCount()<5) state.inventory.push({kind:'treat',count:3});
+        const egg = state.inventory.findIndex(item=>item.kind==='egg');
+        state.incubator = {type:state.inventory[egg].type,parents:state.inventory[egg].parents,day:0,elapsed:0,awaitTurn:false,turned:0,lastAt:Date.now()};
+        state.inventory.splice(egg,1); save(); render(); say('Your egg is warm and safe!');
+      });
+    }
+    function bindIncubator() {
+      $('#turn-egg')?.addEventListener('click', () => {
+        if (!state.incubator?.awaitTurn) return;
+        state.incubator.awaitTurn=false; state.incubator.turned++; state.incubator.elapsed=state.incubator.day*8; state.incubator.lastAt=Date.now();
+        save(); render(); say('A gentle turn. Nice and even!');
+      });
+      $('#hatchery-back')?.addEventListener('click',()=>{currentView='home';render();});
+    }
+    function bindReadyEggs() {
+      document.querySelectorAll('[data-incubate]').forEach(button=>button.addEventListener('click',()=>{
+        const index=Number(button.dataset.incubate), egg=state.inventory[index];
+        if (!egg||egg.kind!=='egg') { say('That egg is no longer in your bag.'); render(); return; }
+        state.inventory.splice(index,1);
+        state.incubator={type:egg.type,parents:egg.parents||egg.type.split('+'),day:0,elapsed:0,awaitTurn:false,turned:0,lastAt:Date.now()};
+        save();render();say('Your egg is warm and safe!');
+      }));
+    }
+    function addXp(dragon, amount) {
+      const before = stageOf(dragon).name;
+      dragon.xp += amount;
+      const after = stageOf(dragon).name;
+      if (before !== after) say(`${dragonName(dragon)} grew into a ${after.toLowerCase()}!`);
+      return before !== after;
+    }
+    function bindCare(dragon) {
+      $('#select-dragon')?.addEventListener('change',event=>{state.selectedDragon=Number(event.target.value);save();render();});
+      $('#feed')?.addEventListener('click',()=>{
+        let treat = state.inventory.find(item=>item.kind==='treat'&&item.count>0);
+        if (!treat) { say('No treats left. The store has more!'); return; }
+        treat.count--; if (treat.count===0) state.inventory.splice(state.inventory.indexOf(treat),1);
+        dragon.hunger=Math.min(100,dragon.hunger+36); dragon.joy=Math.min(100,dragon.joy+5); addXp(dragon,1); state.coins++;
+        save(); render(); say('Yum! A sun coin for good care.');
+      });
+      $('#cuddle')?.addEventListener('click',()=>{
+        dragon.joy=Math.min(100,dragon.joy+24); dragon.energy=Math.max(0,dragon.energy-3); addXp(dragon,1); save(); render(); say(`${dragonName(dragon)} feels loved.`);
+      });
+      $('#train')?.addEventListener('click',()=>{
+        dragon.energy=Math.max(0,dragon.energy-20); dragon.joy=Math.min(100,dragon.joy+7); dragon.skillXp=(dragon.skillXp||0)+1;
+        const skills=dragon.type.split('+').map(type=>TYPES[type]?.skill).filter(Boolean);
+        const learned=skills[(dragon.skillXp-1)%skills.length]||'Magic';
+        const grew=addXp(dragon,2); showObstacle(learned); save(); render();
+        if (!grew) say(`${learned} cleared a little obstacle!`);
+      });
+      $('#rest')?.addEventListener('click',()=>{
+        dragon.energy=Math.min(100,dragon.energy+32); dragon.joy=Math.min(100,dragon.joy+4); addXp(dragon,1); save(); render(); say('A lovely little nap.');
+      });
+    }
+    function bindStore() {
+      document.querySelectorAll('[data-buy-egg]').forEach(button=>button.addEventListener('click',()=>{
+        if (state.coins<4) { say('You need 4 sun coins.'); return; }
+        if (!addItem({kind:'egg',type:button.dataset.buyEgg,parents:[button.dataset.buyEgg]})) return;
+        state.coins-=4; save(); render(); say(`${button.dataset.buyEgg} egg added to your bag.`);
+      }));
+      $('#buy-treats')?.addEventListener('click',()=>{
+        if (state.coins<2) { say('You need 2 sun coins.'); return; }
+        const treat=state.inventory.find(item=>item.kind==='treat');
+        if (treat) { treat.count+=3; state.coins-=2; save(); render(); say('Three treats added!'); }
+        else if (addItem({kind:'treat',count:3})) { state.coins-=2; save(); render(); say('Three treats added!'); }
+      });
+    }
+    function bindPairing() {
+      $('#breed')?.addEventListener('click',()=>{
+        const a=state.dragons.find(dragon=>dragon.id===Number($('#parent-one').value));
+        const b=state.dragons.find(dragon=>dragon.id===Number($('#parent-two').value));
+        if (!a||!b||a.id===b.id) { say('Choose two different grown dragons.'); return; }
+        if (inventoryCount()>=5) { say('Make room in your bag first.'); return; }
+        const forms=[...new Set([...a.type.split('+'),...b.type.split('+')])];
+        state.inventory.push({kind:'egg',type:forms.join('+'),parents:forms}); save(); render(); say('A new family egg!');
+      });
+    }
+    function bindAlchemy() {
+      $('#mix-eggs')?.addEventListener('click',()=>{
+        const one=Number($('#mix-one').value), two=Number($('#mix-two').value);
+        if (one===two) { say('Choose two different eggs.'); return; }
+        const first=state.inventory[one], second=state.inventory[two];
+        if (!first||!second||first.kind!=='egg'||second.kind!=='egg') { say('Those eggs have moved. Try again.'); render(); return; }
+        const forms=[...new Set([...first.type.split('+'),...second.type.split('+')])];
+        state.inventory.splice(Math.max(one,two),1); state.inventory.splice(Math.min(one,two),1);
+        state.inventory.push({kind:'egg',type:forms.join('+'),parents:forms}); save(); render(); say('Magic! Your multi-egg is ready.');
+      });
+    }
+    document.querySelectorAll('.nav-button').forEach(button=>button.addEventListener('click',()=>{currentView=button.dataset.view;render();}));
+
+    const scene=new THREE.Scene();
+    scene.background=new THREE.Color('#d4e8d0');
+    scene.fog=new THREE.Fog('#d4e8d0',14,34);
+    const camera=new THREE.PerspectiveCamera(36,1,.1,100);
+    camera.position.set(0,7.8,13.2); camera.lookAt(0,1.3,0);
+    const renderer=new THREE.WebGLRenderer({antialias:true,alpha:false});
+    renderer.setPixelRatio(Math.min(window.devicePixelRatio,2));
+    renderer.outputColorSpace=THREE.SRGBColorSpace;
+    renderer.toneMapping=THREE.ACESFilmicToneMapping; renderer.toneMappingExposure=1.05;
+    renderer.shadowMap.enabled=true; renderer.shadowMap.type=THREE.PCFSoftShadowMap;
+    sceneHost.appendChild(renderer.domElement);
+    scene.add(new THREE.HemisphereLight('#fff8dc','#6f8d70',2.2));
+    const sun=new THREE.DirectionalLight('#fff2cf',3.3); sun.position.set(-5,9,6); sun.castShadow=true; sun.shadow.mapSize.set(1024,1024); scene.add(sun);
+    const ground=new THREE.Mesh(new THREE.CircleGeometry(80,64),new THREE.MeshStandardMaterial({color:'#afc99e',roughness:1}));
+    ground.rotation.x=-Math.PI/2; ground.position.y=-.12; ground.receiveShadow=true; scene.add(ground);
+    const platform=new THREE.Mesh(new THREE.CylinderGeometry(5.5,5.9,.55,48),new THREE.MeshStandardMaterial({color:'#779768',roughness:.95}));
+    platform.position.y=-.02; platform.receiveShadow=true; platform.castShadow=true; scene.add(platform);
+    const platformTop=new THREE.Mesh(new THREE.CylinderGeometry(5.48,5.55,.14,48),new THREE.MeshStandardMaterial({color:'#c6d99f',roughness:1}));
+    platformTop.position.y=.32; platformTop.receiveShadow=true; scene.add(platformTop);
+    const practiceObstacle=new THREE.Group(); practiceObstacle.position.set(2.15,.35,.15); practiceObstacle.visible=false; scene.add(practiceObstacle);
+    const obstacleMat=new THREE.MeshStandardMaterial({color:'#7a684b',roughness:.8,emissive:'#382c1e'});
+    const obstacleStone=new THREE.Mesh(new THREE.DodecahedronGeometry(.54,1),obstacleMat);
+    obstacleStone.position.y=.48; obstacleStone.scale.set(1,.82,.9); obstacleStone.castShadow=true; practiceObstacle.add(obstacleStone);
+    const obstacleRing=new THREE.Mesh(new THREE.TorusGeometry(.8,.055,8,32),new THREE.MeshStandardMaterial({color:'#f0c46d',emissive:'#a36532',emissiveIntensity:.7,roughness:.5}));
+    obstacleRing.position.y=.62; obstacleRing.rotation.x=Math.PI/2; practiceObstacle.add(obstacleRing);
+    const obstacleLight=new THREE.PointLight('#f0b565',0,3.8); obstacleLight.position.y=.75; practiceObstacle.add(obstacleLight);
+    const grassTufts=[];
+    for(let i=0;i<32;i++){
+      const angle=i*2.399, radius=4.5+((i*17)%10)/10;
+      const tuft=new THREE.Mesh(new THREE.ConeGeometry(.12,.48,5),new THREE.MeshStandardMaterial({color:i%2?'#759960':'#91ad68',roughness:1}));
+      tuft.position.set(Math.cos(angle)*radius,.53,Math.sin(angle)*radius); tuft.rotation.z=.12*Math.sin(i); tuft.castShadow=true; scene.add(tuft); grassTufts.push(tuft);
+    }
+    const rockMaterial=new THREE.MeshStandardMaterial({color:'#93a783',roughness:.9});
+    for(let i=0;i<9;i++){
+      const angle=i*2.4, radius=5.1;
+      const rock=new THREE.Mesh(new THREE.DodecahedronGeometry(.28+(i%3)*.06,0),rockMaterial);
+      rock.position.set(Math.cos(angle)*radius,.48,Math.sin(angle)*radius); rock.scale.y=.7; rock.rotation.set(i,.7*i,0); rock.castShadow=true; scene.add(rock);
+    }
+    const nest=new THREE.Group(); scene.add(nest);
+    const nestBase=new THREE.Mesh(new THREE.TorusGeometry(1.05,.21,10,40),new THREE.MeshStandardMaterial({color:'#8a6844',roughness:1}));
+    nestBase.position.y=.66; nestBase.rotation.x=Math.PI/2; nestBase.scale.set(1,.83,1); nest.add(nestBase);
+    for(let i=0;i<13;i++){
+      const twig=new THREE.Mesh(new THREE.CapsuleGeometry(.045,.55,3,5),new THREE.MeshStandardMaterial({color:i%2?'#987a51':'#806540',roughness:1}));
+      const a=i/13*Math.PI*2; twig.position.set(Math.cos(a)*.88,.62,Math.sin(a)*.73); twig.rotation.y=a; twig.rotation.z=.35*Math.cos(a); nest.add(twig);
+    }
+    const eggGroup=new THREE.Group(); scene.add(eggGroup);
+    const eggProfile=[new THREE.Vector2(0,0),new THREE.Vector2(.29,.06),new THREE.Vector2(.45,.28),new THREE.Vector2(.49,.58),new THREE.Vector2(.42,.91),new THREE.Vector2(.28,1.2),new THREE.Vector2(.1,1.4),new THREE.Vector2(0,1.42)];
+    const eggGeometry=new THREE.LatheGeometry(eggProfile,32);
+    let eggShell=new THREE.Mesh(eggGeometry,new THREE.MeshStandardMaterial({color:'#ef7049',roughness:.3,metalness:.04})); eggShell.position.y=.73; eggShell.castShadow=true; eggGroup.add(eggShell);
+    const eggBands=[];
+    for(let i=0;i<2;i++){
+      const band=new THREE.Mesh(new THREE.TorusGeometry(.44-i*.055,.045,7,32),new THREE.MeshStandardMaterial({color:'#ffd378',roughness:.36,metalness:.12}));
+      band.position.y=.73+.38+i*.26; band.rotation.x=Math.PI/2; band.scale.x=.9; eggGroup.add(band); eggBands.push(band);
+    }
+    const sparkles=[];
+    for(let i=0;i<5;i++){
+      const star=new THREE.Mesh(new THREE.OctahedronGeometry(.09,0),new THREE.MeshBasicMaterial({color:'#fff4c4'}));
+      const a=i*1.25; star.position.set(Math.cos(a)*1.25,1.2+(i%3)*.4,Math.sin(a)*.7); scene.add(star); sparkles.push(star);
+    }
+    const dragonModel=new THREE.Group(); scene.add(dragonModel); dragonModel.visible=false;
+    const dragonCore=new THREE.Group(); dragonModel.add(dragonCore);
+    function sph(parent,color,position,scale,roughness=.65){
+      const mesh=new THREE.Mesh(new THREE.SphereGeometry(1,20,16),new THREE.MeshStandardMaterial({color,roughness}));
+      mesh.position.set(...position); mesh.scale.set(...scale); mesh.castShadow=true; parent.add(mesh); return mesh;
+    }
+    sph(dragonCore,'#588b55',[0,1.13,0],[.62,.52,.79]);
+    sph(dragonCore,'#c7d797',[0,.91,.16],[.44,.27,.54]);
+    const head=sph(dragonCore,'#588b55',[0,1.39,.72],[.48,.43,.48]);
+    sph(dragonCore,'#91b763',[0,1.2,1.09],[.34,.2,.3]);
+    const eyes=[];
+    for(const side of [-1,1]){
+      const eye=sph(dragonCore,'#fff0ad',[side*.25,1.48,.96],[.09,.1,.055],.25); eyes.push(eye);
+      sph(dragonCore,'#364c39',[side*.27,1.47,1.01],[.035,.065,.028],.2);
+      const horn=new THREE.Mesh(new THREE.ConeGeometry(.12,.38,8),new THREE.MeshStandardMaterial({color:'#ead9aa',roughness:.65}));
+      horn.position.set(side*.29,1.77,.6); horn.rotation.z=side*-.22; horn.castShadow=true; dragonCore.add(horn);
+      const foot=sph(dragonCore,'#47784c',[side*.37,.72,.44],[.2,.3,.22]); foot.rotation.x=-.25;
+    }
+    const tail=new THREE.Mesh(new THREE.ConeGeometry(.23,.9,10),new THREE.MeshStandardMaterial({color:'#588b55',roughness:.65}));
+    tail.position.set(0,1.02,-.94); tail.rotation.x=-Math.PI/2; tail.castShadow=true; dragonCore.add(tail);
+    const wingShape=new THREE.Shape(); wingShape.moveTo(0,0); wingShape.lineTo(1.42,.12); wingShape.lineTo(1.08,-.32); wingShape.lineTo(.73,-.17); wingShape.lineTo(.47,-.66); wingShape.lineTo(.22,-.3); wingShape.closePath();
+    const wingPivots=[];
+    for(const side of [-1,1]){
+      const pivot=new THREE.Group(); pivot.position.set(side*.39,1.42,-.22); pivot.scale.x=side; dragonCore.add(pivot);
+      const wing=new THREE.Mesh(new THREE.ShapeGeometry(wingShape),new THREE.MeshStandardMaterial({color:'#8bb966',side:THREE.DoubleSide,roughness:.7}));
+      wing.rotation.x=-.12; wing.castShadow=true; pivot.add(wing); wingPivots.push({pivot,side});
+    }
+    const fireGlow=new THREE.PointLight('#ffad65',1,3.8); fireGlow.position.set(0,1.3,1.1); dragonCore.add(fireGlow);
+    const incubatorModel=new THREE.Group(); scene.add(incubatorModel); incubatorModel.visible=false;
+    const furnaceBase=new THREE.Mesh(new THREE.CylinderGeometry(1.05,1.17,.92,32),new THREE.MeshStandardMaterial({color:'#9c7353',roughness:.8}));
+    furnaceBase.position.y=.65; furnaceBase.castShadow=true; furnaceBase.receiveShadow=true; incubatorModel.add(furnaceBase);
+    const furnaceTop=new THREE.Mesh(new THREE.TorusGeometry(.82,.13,10,32),new THREE.MeshStandardMaterial({color:'#dbad64',roughness:.45,metalness:.12})); furnaceTop.position.y=1.08; furnaceTop.rotation.x=Math.PI/2; incubatorModel.add(furnaceTop);
+    const furnaceFire=new THREE.PointLight('#ff9e4b',2.2,4.7); furnaceFire.position.y=.78; incubatorModel.add(furnaceFire);
+    for(let i=0;i<5;i++){
+      const stone=new THREE.Mesh(new THREE.DodecahedronGeometry(.17,0),rockMaterial); const a=i/5*Math.PI*2;
+      stone.position.set(Math.cos(a)*1.08,.48,Math.sin(a)*1.08); stone.scale.y=.7; incubatorModel.add(stone);
+    }
+    function setEggLook(type,parents=[]){
+      const forms=[...new Set((parents.length?parents:type.split('+')))].filter(name=>TYPES[name]);
+      const main=forms[0]||TYPES_LIST[0], accent=forms[1]||main;
+      eggShell.material.color.set(TYPES[main].color);
+      eggBands[0].material.color.set(TYPES[accent].accent); eggBands[1].material.color.set(TYPES[forms[2]||accent].color);
+      eggBands.forEach((band,index)=>{band.visible=forms.length>1||index===0;});
+      eggGroup.visible=true; dragonModel.visible=false; incubatorModel.visible=false;
+      $('#view-tag').textContent=forms.length>1?'MULTI-EGG':'YOUR FIRST EGG';
+    }
+    function setDragonLook(dragon){
+      const forms=dragon.type.split('+'), first=TYPES[forms[0]]||TYPES.Fire, second=TYPES[forms[1]];
+      const base=first.color;
+      dragonCore.traverse(object=>{if(object.isMesh&&object.material?.color&&object.material.color.getHexString()==='588b55') object.material.color.set(base);});
+      const wings=wingPivots.map(item=>item.pivot.children[0]);
+      wings.forEach((wing,index)=>wing.material.color.set(index===1&&second?second.color:first.accent));
+      fireGlow.color.set(first.accent);
+      const stage=stageOf(dragon); dragonModel.scale.setScalar(stage.scale); dragonModel.visible=true;
+      eggGroup.visible=false; incubatorModel.visible=false;
+      $('#view-tag').textContent=`${stage.name.toUpperCase()} DRAGON`;
+    }
+    function updateWorld(){
+      const dragon=selectedDragon();
+      if(state.incubator){
+        eggGroup.visible=true; dragonModel.visible=false; incubatorModel.visible=true;
+        setEggLook(state.incubator.type,state.incubator.parents); eggGroup.position.set(0,.3,0);
+        incubatorModel.position.set(0,0,0); nest.visible=false;
+        $('#view-tag').textContent='COZY FURNACE'; $('#scene-title').textContent='The Little Furnace';
+        $('#scene-subtitle').textContent='DAY '+Math.min(5,state.incubator.day)+' OF 5';
+        $('#scene-tip').innerHTML=state.incubator.awaitTurn?'<span class="spark">&#10022;</span>Your egg is ready for a gentle turn':'<span class="spark">&#10022;</span>Warm and safe inside the furnace';
+      }else if(dragon){
+        nest.visible=false; setDragonLook(dragon); dragonModel.position.set(0,0,0);
+        $('#scene-title').textContent='The Fernlight Hatchery'; $('#scene-subtitle').textContent='A SAFE PLACE TO GROW';
+        $('#scene-tip').innerHTML=`<span class="spark">&#10022;</span>${escapeHtml(dragonName(dragon))} is ready for a little care`;
+      }else{
+        nest.visible=true; eggGroup.visible=true; incubatorModel.visible=false; dragonModel.visible=false;
+        const type=state.selectedEgg||'Fire'; setEggLook(type,[type]); eggGroup.position.set(0,.3,0);
+        $('#scene-title').textContent='The Fernlight Hatchery'; $('#scene-subtitle').textContent='A SAFE PLACE TO BEGIN';
+        $('#scene-tip').innerHTML=state.selectedEgg?`<span class="spark">&#10022;</span>${TYPES[state.selectedEgg].skill} egg selected`:'<span class="spark">&#10022;</span>Pick an egg to begin your story';
+      }
+      sparkles.forEach((star,index)=>{star.visible=!dragon&&!state.incubator;});
+    }
+    const clock=new THREE.Clock(); let elapsed=0, obstacleUntil=0;
+    function showObstacle(skill){
+      const type=TYPES_LIST.find(name=>TYPES[name].skill===skill)||'Fire';
+      obstacleRing.material.color.set(TYPES[type].accent); obstacleRing.material.emissive.set(TYPES[type].color);
+      obstacleLight.color.set(TYPES[type].accent); obstacleUntil=elapsed+1.35; practiceObstacle.visible=true;
+    }
+    function tickIncubator(dt){
+      if(!state.incubator||state.incubator.awaitTurn)return;
+      const inc=state.incubator; inc.elapsed+=dt;
+      const newDay=Math.floor(inc.elapsed/8);
+      if(newDay>inc.day){
+        inc.day=Math.min(newDay,5);
+        if(inc.day<5&&inc.day%2===0){inc.awaitTurn=true;}
+        if(inc.day>=5){
+          const dragon={id:state.nextId++,type:inc.type,parents:inc.parents||inc.type.split('+'),xp:0,skillXp:0,hunger:72,joy:78,energy:92,name:''};
+          state.dragons.push(dragon);state.selectedDragon=dragon.id;state.incubator=null;state.firstPick=false;
+          say('Crack! Your dragon hatched!'); currentView='home';
+        }
+        save();render();
+      }
+      inc.lastAt=Date.now();
+    }
+    function animate(){
+      requestAnimationFrame(animate);
+      const dt=Math.min(clock.getDelta(),.05);elapsed+=dt;
+      if(state.incubator)tickIncubator(dt);
+      eggGroup.position.y=(state.incubator?.awaitTurn? .3 : .3+Math.sin(elapsed*2)*.045);
+      eggGroup.rotation.y=Math.sin(elapsed*.35)*.12;
+      eggBands.forEach((band,index)=>{band.rotation.z=elapsed*(index%2?.18:-.14);});
+      sparkles.forEach((star,index)=>{star.position.y=1.2+(index%3)*.4+Math.sin(elapsed*2+index)*.13;star.rotation.y+=dt;});
+      wingPivots.forEach(({pivot,side})=>{pivot.rotation.z=side*(.14+Math.sin(elapsed*7)*.28);});
+      dragonCore.position.y=.02+Math.sin(elapsed*2.6)*.035;
+      dragonCore.rotation.y=Math.sin(elapsed*.55)*.17;
+      fireGlow.intensity=1.2+Math.sin(elapsed*4)*.45;
+      furnaceFire.intensity=1.8+Math.sin(elapsed*5)*.6;
+      if(practiceObstacle.visible){
+        const pulse=1+Math.max(0,obstacleUntil-elapsed)*.12;
+        practiceObstacle.scale.setScalar(pulse); obstacleRing.rotation.z+=dt*1.8;
+        obstacleLight.intensity=1.5+Math.sin(elapsed*15)*.8;
+        if(elapsed>=obstacleUntil){practiceObstacle.visible=false;obstacleLight.intensity=0;}
+      }
+      renderer.render(scene,camera);
+    }
+    function resize(){
+      const width=sceneHost.clientWidth,height=sceneHost.clientHeight;if(!width||!height)return;
+      camera.aspect=width/height;camera.position.z=width<700?16.8:13.2;camera.updateProjectionMatrix();renderer.setSize(width,height);
+    }
+    const resizeObserver=new ResizeObserver(resize);resizeObserver.observe(sceneHost);resize();animate();
+
+    if(state.incubator){
+      const elapsedBefore=state.incubator.elapsed||0;
+      state.incubator.elapsed=elapsedBefore;
+      if(!Number.isFinite(state.incubator.day))state.incubator.day=Math.floor(elapsedBefore/8);
+    }
+    if(!state.dragons.length&&!state.incubator&&state.firstPick&&TYPES[state.selectedEgg]){}else if(!state.selectedEgg)state.selectedEgg='Fire';
+    render();save();
+  </script>
+</body>
+</html>
