@@ -154,3 +154,35 @@ Created this Markdown transcript with the project prompts, final responses, and 
 - State important rules explicitly, such as “only eggs inside the oven incubate” and “the drawer stores eggs safely.”
 - Describe both input and outcome: for example, click or drag an egg into the oven, then close the bars to start incubation.
 - Ask for verification and a commit explicitly when you are ready for a change to be saved in Git.
+
+## 13. Keep the Transcript Current
+
+**Prompt**
+
+> Can we continue to append the chat transcript md file on every prompt pleas?
+
+**Response**
+
+Yes. This exchange has been appended, and future user prompts and final assistant responses in this conversation will be added to the transcript as we go.
+
+## 14. Dragon Eye Blinks
+
+**Prompt**
+
+> Can we add eyes to the dragon that blink regularly to give an imression of life?
+
+**Response**
+
+Added periodic eye blinks. The dragon's pupils close with its eyes so they stay aligned during the animation.
+
+## 15. Commit and Publish on GitHub Pages
+
+**Prompt**
+
+> Can we commit where we are?
+>
+> Can this be hosted on github pages? If so can we push this repo to github and get it published as a  github page?
+
+**Response**
+
+Committed the current local game and transcript changes and added a GitHub Actions workflow to publish `index.html` through GitHub Pages on pushes to `master`. Publishing could not be completed because GitHub is signed out in the browser, no GitHub CLI is installed, and no remote is configured. The repository needs a GitHub remote and authenticated push before the workflow can deploy the page.

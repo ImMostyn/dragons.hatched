@@ -682,9 +682,12 @@
     dragonBaseMeshes.push(sph(dragonCore,'#588b55',[0,1.39,.72],[.48,.43,.48]));
     sph(dragonCore,'#91b763',[0,1.2,1.09],[.34,.2,.3]);
     const eyes=[];
+    let nextBlinkAt=2.2+Math.random()*2.2,blinkStartedAt=-1;
+    const blinkDuration=.18;
     for(const side of [-1,1]){
-      const eye=sph(dragonCore,'#fff0ad',[side*.25,1.48,.96],[.09,.1,.055],.25); eyes.push(eye);
-      sph(dragonCore,'#364c39',[side*.27,1.47,1.01],[.035,.065,.028],.2);
+      const eye=sph(dragonCore,'#fff0ad',[side*.25,1.48,.96],[.09,.1,.055],.25);
+      const pupil=sph(dragonCore,'#364c39',[side*.27,1.47,1.01],[.035,.065,.028],.2);
+      eyes.push({eye,pupil,eyeHeight:eye.scale.y,pupilHeight:pupil.scale.y});
       const horn=new THREE.Mesh(new THREE.ConeGeometry(.12,.38,8),new THREE.MeshStandardMaterial({color:'#ead9aa',roughness:.65}));
       horn.position.set(side*.29,1.77,.6); horn.rotation.z=side*-.22; horn.castShadow=true; dragonCore.add(horn);
       const foot=sph(dragonCore,'#47784c',[side*.37,.72,.44],[.2,.3,.22]); foot.rotation.x=-.25;dragonLegMeshes.push(foot);
@@ -940,6 +943,12 @@
         wingPivots.forEach(({pivot,side})=>{pivot.rotation.z=side*(.14+Math.sin(elapsed*7)*.28);});
         dragonCore.position.y=.02+Math.sin(elapsed*2.6)*.035;
       }
+      if(elapsed>=nextBlinkAt){blinkStartedAt=elapsed;nextBlinkAt=elapsed+2.5+Math.random()*3.5;}
+      const blinkProgress=(elapsed-blinkStartedAt)/blinkDuration;
+      const blinkAmount=blinkStartedAt<0||blinkProgress>=1?0:Math.sin(Math.PI*THREE.MathUtils.clamp(blinkProgress,0,1));
+      eyes.forEach(({eye,pupil,eyeHeight,pupilHeight})=>{
+        eye.scale.y=eyeHeight*(1-.94*blinkAmount);pupil.scale.y=pupilHeight*(1-.94*blinkAmount);
+      });
       dragonCore.rotation.y=Math.sin(elapsed*.55)*.17;
       fireGlow.intensity=1.2+Math.sin(elapsed*4)*.45;
       ovenDoorBars.position.y=THREE.MathUtils.damp(ovenDoorBars.position.y,state.ovenOpen?3.9:2.12,8,dt);
