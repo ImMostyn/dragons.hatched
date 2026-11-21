@@ -175,6 +175,16 @@ Yes. This exchange has been appended, and future user prompts and final assistan
 
 Added periodic eye blinks. The dragon's pupils close with its eyes so they stay aligned during the animation.
 
+## 17. Commit and Push to GitHub
+
+**Prompt**
+
+> Can we commit the changes and publish the master branch to github?
+
+**Response**
+
+Committed the dragon eye and age-shape changes as `a640f51` (`Improve dragon visibility and growth`) and pushed `master` to `origin` at `https://github.com/ImMostyn/dragons.hatched.git`. The GitHub Pages workflow completed successfully, and the live game is available at [https://immostyn.github.io/dragons.hatched/](https://immostyn.github.io/dragons.hatched/).
+
 ## 15. Commit and Publish on GitHub Pages
 
 **Prompt**
