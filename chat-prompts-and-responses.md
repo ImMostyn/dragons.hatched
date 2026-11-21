@@ -186,3 +186,15 @@ Added periodic eye blinks. The dragon's pupils close with its eyes so they stay 
 **Response**
 
 Committed the current local game and transcript changes and added a GitHub Actions workflow to publish `index.html` through GitHub Pages on pushes to `master`. Publishing could not be completed because GitHub is signed out in the browser, no GitHub CLI is installed, and no remote is configured. The repository needs a GitHub remote and authenticated push before the workflow can deploy the page.
+
+## 16. Visible Eyes and Age Shapes
+
+**Prompt**
+
+> I don't see the eyes at all let alone see them blink. Could you fix that please?
+>
+> Also as the dragons evolve and grow up it would be good if they got leaner and taller. It makes sense to be cute and podgy as youngseters but elder dragons should be better defined and athletic?
+
+**Response**
+
+Moved and enlarged the eyes, pupils, and catchlights so they are visible on the front of the head, and kept all three aligned during blinks. Added age-based body proportions so babies and children remain rounder while teen, adult, and elder dragons grow progressively taller and leaner.

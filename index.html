@@ -685,9 +685,10 @@
     let nextBlinkAt=2.2+Math.random()*2.2,blinkStartedAt=-1;
     const blinkDuration=.18;
     for(const side of [-1,1]){
-      const eye=sph(dragonCore,'#fff0ad',[side*.25,1.48,.96],[.09,.1,.055],.25);
-      const pupil=sph(dragonCore,'#364c39',[side*.27,1.47,1.01],[.035,.065,.028],.2);
-      eyes.push({eye,pupil,eyeHeight:eye.scale.y,pupilHeight:pupil.scale.y});
+      const eye=sph(dragonCore,'#fff0ad',[side*.27,1.5,1.15],[.125,.14,.08],.25);
+      const pupil=sph(dragonCore,'#273b35',[side*.285,1.495,1.225],[.052,.085,.04],.2);
+      const glint=sph(dragonCore,'#fff9e7',[side*.265,1.54,1.26],[.024,.027,.015],.2);
+      eyes.push({eye,pupil,glint,eyeHeight:eye.scale.y,pupilHeight:pupil.scale.y,glintHeight:glint.scale.y});
       const horn=new THREE.Mesh(new THREE.ConeGeometry(.12,.38,8),new THREE.MeshStandardMaterial({color:'#ead9aa',roughness:.65}));
       horn.position.set(side*.29,1.77,.6); horn.rotation.z=side*-.22; horn.castShadow=true; dragonCore.add(horn);
       const foot=sph(dragonCore,'#47784c',[side*.37,.72,.44],[.2,.3,.22]); foot.rotation.x=-.25;dragonLegMeshes.push(foot);
@@ -830,7 +831,12 @@
       const wings=wingPivots.map(item=>item.pivot.children[0]);
       wings.forEach((wing,index)=>wing.material.color.set(index===1&&second?second.color:first.accent));
       fireGlow.color.set(first.accent);
-      const stage=stageOf(dragon); dragonModel.scale.setScalar(stage.scale*.78); dragonModel.visible=true;
+      const stage=stageOf(dragon);
+      const bodyShape={
+        Baby:[1.06,.94,1.06],Child:[1.02,1.02,1.02],Teenager:[.96,1.13,.97],Adult:[.9,1.28,.92],Elder:[.84,1.4,.88]
+      }[stage.name];
+      dragonCore.scale.set(...bodyShape);
+      dragonModel.scale.setScalar(stage.scale*.78); dragonModel.visible=true;
       eggGroup.visible=Boolean(hatchedEgg); incubatorModel.visible=true; dragonModel.position.set(0,0,hatchedEgg?4:2.08);
       if(hatchedEgg){
         const eggForms=hatchedEgg.parents?.length?hatchedEgg.parents:hatchedEgg.type.split('+'),eggMain=TYPES[eggForms[0]]||TYPES.Fire;
@@ -946,8 +952,8 @@
       if(elapsed>=nextBlinkAt){blinkStartedAt=elapsed;nextBlinkAt=elapsed+2.5+Math.random()*3.5;}
       const blinkProgress=(elapsed-blinkStartedAt)/blinkDuration;
       const blinkAmount=blinkStartedAt<0||blinkProgress>=1?0:Math.sin(Math.PI*THREE.MathUtils.clamp(blinkProgress,0,1));
-      eyes.forEach(({eye,pupil,eyeHeight,pupilHeight})=>{
-        eye.scale.y=eyeHeight*(1-.94*blinkAmount);pupil.scale.y=pupilHeight*(1-.94*blinkAmount);
+      eyes.forEach(({eye,pupil,glint,eyeHeight,pupilHeight,glintHeight})=>{
+        eye.scale.y=eyeHeight*(1-.94*blinkAmount);pupil.scale.y=pupilHeight*(1-.94*blinkAmount);glint.scale.y=glintHeight*(1-.94*blinkAmount);
       });
       dragonCore.rotation.y=Math.sin(elapsed*.55)*.17;
       fireGlow.intensity=1.2+Math.sin(elapsed*4)*.45;
