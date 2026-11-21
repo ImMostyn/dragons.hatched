@@ -890,7 +890,7 @@
       dragonCore.position.y=.02+stretch*.14;
       if(hatch.elapsed>=4.8){
         state.dragons.push(hatch.dragon);state.selectedDragon=hatch.dragon.id;
-        state.incubator=null;state.ovenOpen=true;state.firstPick=false;state.hatchedEgg={dragonId:hatch.dragon.id,type:hatch.dragon.eggType,parents:hatch.dragon.eggParents};
+        state.incubator=null;state.ovenOpen=false;state.firstPick=false;state.hatchedEgg={dragonId:hatch.dragon.id,type:hatch.dragon.eggType,parents:hatch.dragon.eggParents};
         dragonCore.scale.set(1,1,1);dragonCore.position.y=0;setDragonLook(hatch.dragon);
         currentView='home';save();render();say('Crack! Your dragon hatched!');
       }
