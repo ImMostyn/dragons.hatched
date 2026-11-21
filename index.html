@@ -517,25 +517,57 @@
     document.querySelectorAll('.nav-button').forEach(button=>button.addEventListener('click',()=>{currentView=button.dataset.view;render();}));
 
     const scene=new THREE.Scene();
-    scene.background=new THREE.Color('#d4e8d0');
-    scene.fog=new THREE.Fog('#d4e8d0',14,34);
+    scene.background=new THREE.Color('#77b6e2');
+    scene.fog=new THREE.Fog('#9bc9e4',42,88);
     const camera=new THREE.PerspectiveCamera(36,1,.1,100);
-    camera.position.set(0,7.8,13.2); camera.lookAt(0,1.3,0);
+    camera.position.set(0,4.7,16.2); camera.lookAt(0,1.3,0);
     const renderer=new THREE.WebGLRenderer({antialias:true,alpha:false});
     renderer.setPixelRatio(Math.min(window.devicePixelRatio,2));
     renderer.outputColorSpace=THREE.SRGBColorSpace;
     renderer.toneMapping=THREE.ACESFilmicToneMapping; renderer.toneMappingExposure=1.05;
     renderer.shadowMap.enabled=true; renderer.shadowMap.type=THREE.PCFSoftShadowMap;
     sceneHost.appendChild(renderer.domElement);
-    scene.add(new THREE.HemisphereLight('#fff8dc','#6f8d70',2.2));
-    const sun=new THREE.DirectionalLight('#fff2cf',3.3); sun.position.set(-5,9,6); sun.castShadow=true; sun.shadow.mapSize.set(1024,1024); scene.add(sun);
-    const ground=new THREE.Mesh(new THREE.CircleGeometry(80,64),new THREE.MeshStandardMaterial({color:'#afc99e',roughness:1}));
-    ground.rotation.x=-Math.PI/2; ground.position.y=-.12; ground.receiveShadow=true; scene.add(ground);
-    const platform=new THREE.Mesh(new THREE.CylinderGeometry(5.5,5.9,.55,48),new THREE.MeshStandardMaterial({color:'#779768',roughness:.95}));
-    platform.position.y=-.02; platform.receiveShadow=true; platform.castShadow=true; scene.add(platform);
-    const platformTop=new THREE.Mesh(new THREE.CylinderGeometry(5.48,5.55,.14,48),new THREE.MeshStandardMaterial({color:'#c6d99f',roughness:1}));
-    platformTop.position.y=.32; platformTop.receiveShadow=true; scene.add(platformTop);
-    const practiceObstacle=new THREE.Group(); practiceObstacle.position.set(2.15,.35,.15); practiceObstacle.visible=false; scene.add(practiceObstacle);
+    const skyCanvas=document.createElement('canvas');skyCanvas.width=512;skyCanvas.height=256;
+    const skyContext=skyCanvas.getContext('2d');
+    const skyGradient=skyContext.createLinearGradient(0,0,0,256);
+    skyGradient.addColorStop(0,'#1c5fa6');skyGradient.addColorStop(.25,'#3281c6');skyGradient.addColorStop(.55,'#70b1dd');skyGradient.addColorStop(.82,'#b6d8e9');skyGradient.addColorStop(1,'#dceaf0');
+    skyContext.fillStyle=skyGradient;skyContext.fillRect(0,0,512,256);
+    const skyTexture=new THREE.CanvasTexture(skyCanvas);skyTexture.colorSpace=THREE.SRGBColorSpace;
+    const skyDome=new THREE.Mesh(new THREE.SphereGeometry(85,40,24),new THREE.MeshBasicMaterial({map:skyTexture,side:THREE.BackSide,depthWrite:false,toneMapped:false,fog:false}));
+    scene.add(skyDome);
+    scene.add(new THREE.HemisphereLight('#ffd49a','#b56a45',2.55));
+    const sun=new THREE.DirectionalLight('#ffd08a',2.9);sun.position.set(-5,9,6);sun.castShadow=true;sun.shadow.mapSize.set(1024,1024);scene.add(sun);
+    const cloudMaterial=new THREE.MeshStandardMaterial({color:'#dceaf0',emissive:'#8aa6b5',emissiveIntensity:.04,roughness:1});
+    const clouds=[];
+    function addCloud(x,y,z,scale=1){
+      const cloud=new THREE.Group();cloud.position.set(x,y,z);cloud.scale.setScalar(scale);scene.add(cloud);
+      cloud.rotation.y=Math.random()*Math.PI*2;
+      const puffCount=4+Math.floor(Math.random()*5);
+      for(let i=0;i<puffCount;i++){
+        const angle=Math.random()*Math.PI*2,radius=i===0?0:.18+Math.random()*.65;
+        const puff=new THREE.Mesh(new THREE.SphereGeometry(1,18,14),cloudMaterial);
+        puff.position.set(Math.cos(angle)*radius*1.08,(Math.random()-.42)*.34,Math.sin(angle)*radius*.4);
+        puff.scale.set(.72+Math.random()*.4,.32+Math.random()*.2,.55+Math.random()*.25);
+        cloud.add(puff);
+      }
+      clouds.push({cloud,baseX:x,speed:.025+(clouds.length%3)*.008});
+    }
+    [[-6.1,.9,-5.5],[6.2,1.2,-6.5],[-9,2.1,-13],[9.2,2.4,-14],[0,3.4,-20]].forEach(([x,y,z])=>{
+      addCloud(x+(Math.random()-.5)*.7,y+(Math.random()-.5)*.35,z+(Math.random()-.5)*1,.9+Math.random()*.18);
+    });
+    const platform=new THREE.Mesh(new THREE.CylinderGeometry(5.58,5.82,.4,48),new THREE.MeshStandardMaterial({color:'#85503d',roughness:.9}));
+    platform.position.y=.055; platform.receiveShadow=true; platform.castShadow=true; scene.add(platform);
+    const islandUnderside=new THREE.Mesh(new THREE.ConeGeometry(5.58,5.2,9,2),new THREE.MeshStandardMaterial({color:'#754938',roughness:.96,flatShading:true}));
+    islandUnderside.rotation.z=Math.PI;islandUnderside.position.y=-2.28;islandUnderside.castShadow=true;islandUnderside.receiveShadow=true;scene.add(islandUnderside);
+    const islandRockMats=['#765044','#5a4140','#8c5841'].map(color=>new THREE.MeshStandardMaterial({color,roughness:.94,flatShading:true}));
+    for(let i=0;i<18;i++){
+      const angle=i*2.399,radius=2.2+(i%5)*.42,y=-.8-Math.floor(i/6)*.82;
+      const rock=new THREE.Mesh(new THREE.DodecahedronGeometry(.66+(i%3)*.16,0),islandRockMats[i%islandRockMats.length]);
+      rock.position.set(Math.cos(angle)*radius,y,Math.sin(angle)*radius);rock.scale.set(1.05,.8,1);rock.rotation.set(i*.3,i*.7,i*.2);rock.castShadow=true;rock.receiveShadow=true;scene.add(rock);
+    }
+    const platformTop=new THREE.Mesh(new THREE.CylinderGeometry(5.56,5.6,.07,48),new THREE.MeshStandardMaterial({color:'#6f9144',roughness:.94}));
+    platformTop.position.y=.29; platformTop.receiveShadow=true; scene.add(platformTop);
+    const practiceObstacle=new THREE.Group(); practiceObstacle.position.set(2.15,.35,.15);practiceObstacle.scale.setScalar(.76);practiceObstacle.visible=false;scene.add(practiceObstacle);
     const obstacleMat=new THREE.MeshStandardMaterial({color:'#7a684b',roughness:.8,emissive:'#382c1e'});
     const obstacleStone=new THREE.Mesh(new THREE.DodecahedronGeometry(.54,1),obstacleMat);
     obstacleStone.position.y=.48; obstacleStone.scale.set(1,.82,.9); obstacleStone.castShadow=true; practiceObstacle.add(obstacleStone);
@@ -544,13 +576,13 @@
     const obstacleLight=new THREE.PointLight('#f0b565',0,3.8); obstacleLight.position.y=.75; practiceObstacle.add(obstacleLight);
     const grassTufts=[];
     for(let i=0;i<32;i++){
-      const angle=i*2.399, radius=4.5+((i*17)%10)/10;
-      const tuft=new THREE.Mesh(new THREE.ConeGeometry(.12,.48,5),new THREE.MeshStandardMaterial({color:i%2?'#759960':'#91ad68',roughness:1}));
+      const angle=i*2.399, radius=4.05+((i*17)%10)/10;
+      const tuft=new THREE.Mesh(new THREE.ConeGeometry(.12,.48,5),new THREE.MeshStandardMaterial({color:i%2?'#587b35':'#9bb94a',roughness:1}));
       tuft.position.set(Math.cos(angle)*radius,.53,Math.sin(angle)*radius); tuft.rotation.z=.12*Math.sin(i); tuft.castShadow=true; scene.add(tuft); grassTufts.push(tuft);
     }
-    const rockMaterial=new THREE.MeshStandardMaterial({color:'#93a783',roughness:.9});
+    const rockMaterial=new THREE.MeshStandardMaterial({color:'#98704a',roughness:.88});
     for(let i=0;i<9;i++){
-      const angle=i*2.4, radius=5.1;
+      const angle=i*2.4, radius=4.45;
       const rock=new THREE.Mesh(new THREE.DodecahedronGeometry(.28+(i%3)*.06,0),rockMaterial);
       rock.position.set(Math.cos(angle)*radius,.48,Math.sin(angle)*radius); rock.scale.y=.7; rock.rotation.set(i,.7*i,0); rock.castShadow=true; scene.add(rock);
     }
@@ -678,17 +710,17 @@
       geometry.translate(0,0,-depth/2);
       const mesh=new THREE.Mesh(geometry,material);mesh.castShadow=true;mesh.receiveShadow=true;return mesh;
     }
-    const incubatorModel=new THREE.Group();incubatorModel.position.set(0,0,-1.2);scene.add(incubatorModel);
-    const ovenMaterial=new THREE.MeshStandardMaterial({color:'#657b60',roughness:.43,metalness:.12});
+    const incubatorModel=new THREE.Group();incubatorModel.position.set(0,0,-1.2);incubatorModel.scale.setScalar(.78);scene.add(incubatorModel);
+    const ovenMaterial=new THREE.MeshStandardMaterial({color:'#75463b',roughness:.43,metalness:.12});
     const ovenBack=roundedBox(3.6,3.45,.18,.28,ovenMaterial);ovenBack.position.set(0,1.92,-1.08);incubatorModel.add(ovenBack);
     for(const side of [-1,1]){
       const ovenWall=roundedBox(.72,3.45,2.3,.22,ovenMaterial);ovenWall.position.set(side*1.44,1.92,0);incubatorModel.add(ovenWall);
     }
     const ovenCrown=roundedBox(3.6,.58,2.3,.18,ovenMaterial);ovenCrown.position.set(0,3.34,0);incubatorModel.add(ovenCrown);
     const ovenPlinth=roundedBox(3.6,.9,2.3,.18,ovenMaterial);ovenPlinth.position.set(0,.68,0);incubatorModel.add(ovenPlinth);
-    const ovenTop=roundedBox(3.72,.22,2.45,.1,new THREE.MeshStandardMaterial({color:'#879574',roughness:.42,metalness:.12}));
+    const ovenTop=roundedBox(3.72,.22,2.45,.1,new THREE.MeshStandardMaterial({color:'#a96345',roughness:.42,metalness:.12}));
     ovenTop.position.set(0,3.72,0);incubatorModel.add(ovenTop);
-    const chimney=roundedBox(.62,.68,.72,.12,new THREE.MeshStandardMaterial({color:'#657b60',roughness:.5,metalness:.08}));
+    const chimney=roundedBox(.62,.68,.72,.12,new THREE.MeshStandardMaterial({color:'#75463b',roughness:.5,metalness:.08}));
     chimney.position.set(.9,4.12,-.55);incubatorModel.add(chimney);
     const chimneyCap=roundedBox(.82,.13,.86,.06,new THREE.MeshStandardMaterial({color:'#bb9361',roughness:.4,metalness:.3}));
     chimneyCap.position.set(.9,4.5,-.55);incubatorModel.add(chimneyCap);
@@ -756,7 +788,7 @@
     }
     const drawerEggSlots=[];
     for(let i=0;i<5;i++){
-      const egg=new THREE.Group();egg.scale.setScalar(.3);egg.position.set(-.84+i*.42,.55,1.3);drawerGroup.add(egg);
+      const egg=new THREE.Group();egg.scale.setScalar(.24);egg.position.set(-.84+i*.42,.55,1.3);drawerGroup.add(egg);
       const shell=new THREE.Mesh(eggGeometry,new THREE.MeshStandardMaterial({color:'#ef7049',roughness:.35}));shell.position.y=.73;egg.add(shell);
       const band=new THREE.Mesh(new THREE.TorusGeometry(.44,.07,6,20),new THREE.MeshStandardMaterial({color:'#ffd378',roughness:.3}));band.position.y=1.12;band.rotation.x=Math.PI/2;egg.add(band);
       drawerEggSlots.push({egg,shell,band});
@@ -795,12 +827,12 @@
       const wings=wingPivots.map(item=>item.pivot.children[0]);
       wings.forEach((wing,index)=>wing.material.color.set(index===1&&second?second.color:first.accent));
       fireGlow.color.set(first.accent);
-      const stage=stageOf(dragon); dragonModel.scale.setScalar(stage.scale); dragonModel.visible=true;
+      const stage=stageOf(dragon); dragonModel.scale.setScalar(stage.scale*.78); dragonModel.visible=true;
       eggGroup.visible=Boolean(hatchedEgg); incubatorModel.visible=true; dragonModel.position.set(0,0,hatchedEgg?4:2.08);
       if(hatchedEgg){
         const eggForms=hatchedEgg.parents?.length?hatchedEgg.parents:hatchedEgg.type.split('+'),eggMain=TYPES[eggForms[0]]||TYPES.Fire;
         eggShell.visible=false;eggBands.forEach(band=>{band.visible=false;});
-        eggGroup.position.set(0,-.34,2.62);eggGroup.scale.setScalar(.82);eggGroup.rotation.set(0,0,0);
+        eggGroup.position.set(0,-.34,2.62);eggGroup.scale.setScalar(.67);eggGroup.rotation.set(0,0,0);
         hatchShells.forEach((shell,index)=>{
           const side=index===0?-1:1;shell.visible=true;shell.material.color.set((TYPES[eggForms[index]]||eggMain).color);
           shell.position.set(side*.78,.76,0);shell.rotation.set(0,side*.08,side*.85);
@@ -811,11 +843,11 @@
     function updateWorld(){
       const dragon=selectedDragon();
       const hatchedEgg=dragon&&!state.incubator?dragonEgg(dragon):null;
-      camera.lookAt(0,hatchedEgg?.95:1.3,0);
+      camera.lookAt(0,hatchedEgg?-.1:1.3,0);
       incubatorModel.visible=true;incubatorModel.position.set(0,0,-1.2);syncDrawerRack();
       if(state.incubator){
         eggGroup.visible=true; dragonModel.visible=false;
-        setEggLook(state.incubator.type,state.incubator.parents); eggGroup.position.set(0,.76,-.48);eggGroup.scale.setScalar(.82);
+        setEggLook(state.incubator.type,state.incubator.parents); eggGroup.position.set(0,.76,-.48);eggGroup.scale.setScalar(.68);
         nest.visible=false;
         $('#view-tag').textContent=state.ovenOpen?'BARS RAISED':'BARS CLOSED · HEATING'; $('#scene-title').textContent='The Little Furnace';
         $('#scene-subtitle').textContent='DAY '+Math.min(5,state.incubator.day)+' OF 5';
@@ -827,7 +859,7 @@
       }else{
         nest.visible=!state.drawer.length; dragonModel.visible=false;
         if(state.drawer.length){eggGroup.visible=false;}
-        else{const type=state.selectedEgg||'Fire';setEggLook(type,[type]);eggGroup.position.set(0,.3,2.35);eggGroup.scale.setScalar(1);}
+        else{const type=state.selectedEgg||'Fire';setEggLook(type,[type]);eggGroup.position.set(0,.3,2.35);eggGroup.scale.setScalar(.82);}
         $('#view-tag').textContent=state.drawer.length?'EGG DRAWER':'YOUR FIRST EGG';
         $('#scene-title').textContent='The Fernlight Hatchery'; $('#scene-subtitle').textContent=state.drawer.length?'EGGS REST SAFELY IN THE DRAWER':'A SAFE PLACE TO BEGIN';
         $('#scene-tip').innerHTML=state.drawer.length?'<span class="spark">&#10022;</span>Click an egg to load · drag it into the oven':state.firstPick&&state.drawerOpen?'<span class="spark">&#10022;</span>Click a classic egg in the drawer to load it':state.firstPick?'<span class="spark">&#10022;</span>Open the drawer to browse all nine eggs':state.selectedEgg?`<span class="spark">&#10022;</span>${TYPES[state.selectedEgg].skill} egg · drag to inspect`:'<span class="spark">&#10022;</span>Pick an egg and drag to inspect';
@@ -880,7 +912,7 @@
       dragonModel.visible=reveal>0;
       const stepOut=smooth((hatch.elapsed-3.45)/1.1);
       dragonModel.position.set(0,-.04,THREE.MathUtils.lerp(2.65,4,stepOut));
-      dragonModel.scale.setScalar(stageOf(hatch.dragon).scale*Math.max(.01,reveal));
+      dragonModel.scale.setScalar(stageOf(hatch.dragon).scale*.78*Math.max(.01,reveal));
       const unfurl=smooth((hatch.elapsed-2.9)/.95);
       wingPivots.forEach(({pivot,side})=>{
         pivot.rotation.z=side*(1.1*(1-unfurl)+(.14+Math.sin(elapsed*7)*.16)*unfurl);
@@ -919,7 +951,7 @@
       lavaHighlights.forEach((ripple,index)=>{ripple.rotation.z+=dt*(index%2?.13:-.09);});
       if(practiceObstacle.visible){
         const pulse=1+Math.max(0,obstacleUntil-elapsed)*.12;
-        practiceObstacle.scale.setScalar(pulse); obstacleRing.rotation.z+=dt*1.8;
+        practiceObstacle.scale.setScalar(.76*pulse); obstacleRing.rotation.z+=dt*1.8;
         obstacleLight.intensity=1.5+Math.sin(elapsed*15)*.8;
         if(elapsed>=obstacleUntil){practiceObstacle.visible=false;obstacleLight.intensity=0;}
       }
@@ -927,7 +959,7 @@
     }
     function resize(){
       const width=sceneHost.clientWidth,height=sceneHost.clientHeight;if(!width||!height)return;
-      camera.aspect=width/height;camera.position.z=width<700?16.8:13.2;camera.updateProjectionMatrix();renderer.setSize(width,height);
+      camera.aspect=width/height;camera.position.z=width<700?18.2:16.2;camera.updateProjectionMatrix();renderer.setSize(width,height);
     }
     const resizeObserver=new ResizeObserver(resize);resizeObserver.observe(sceneHost);resize();animate();
 
