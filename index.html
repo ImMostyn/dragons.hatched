@@ -208,7 +208,7 @@
       { name:'Baby', min:0, scale:.69 }, { name:'Child', min:4, scale:.82 },
       { name:'Teenager', min:10, scale:1 }, { name:'Adult', min:18, scale:1.16 }, { name:'Elder', min:28, scale:1.28 }
     ];
-    const newState = () => ({ coins:8, inventory:[], drawer:[], drawerOpen:false, ovenOpen:true, dragons:[], selectedDragon:null, selectedEgg:null, firstPick:true, incubator:null, lastCare:Date.now(), nextId:1 });
+    const newState = () => ({ coins:8, inventory:[], drawer:[], drawerOpen:false, ovenOpen:true, dragons:[], selectedDragon:null, selectedEgg:null, firstPick:true, incubator:null, hatchedEgg:null, lastCare:Date.now(), nextId:1 });
     let state;
     try { state = { ...newState(), ...JSON.parse(localStorage.getItem('dragonsHatchedSave') || '{}') }; }
     catch { state = newState(); }
@@ -270,9 +270,12 @@
         <div class="shop-list">${eggs.map(({item,index})=>`<div class="shop-item"><span class="egg-swatch" style="--egg-color:${eggColor(item.type)};margin:auto"></span><div><div class="shop-name">${escapeHtml(typeLabel(item.type))} egg</div><div class="shop-desc">${item.type.includes('+')?'Multi-egg':'Classic egg'}</div></div><button class="shop-buy" data-store-egg="${index}" ${state.drawer.length>=5?'disabled':''}>Store</button><button class="shop-buy" data-incubate="${index}" ${state.incubator||!state.ovenOpen?'disabled':''}>Load</button></div>`).join('')}</div>`;
     }
     function drawerMarkup() {
+      const firstEggFree=state.firstPick&&state.dragons.length===0&&!state.incubator&&state.drawer.length===0;
+      const classicEggs=state.drawerOpen?`<div class="section-heading" style="margin-top:13px"><h2>CLASSIC EGG SELECTION</h2><span class="section-note">9 FORMS</span></div>
+        <div class="egg-grid">${TYPES_LIST.map(type=>`<button class="egg-choice" data-load-classic="${type}" aria-label="Load ${type} egg into furnace" style="--egg-color:${TYPES[type].color}" ${state.incubator||!state.ovenOpen||(!firstEggFree&&state.coins<4)?'disabled':''}><span class="egg-swatch"></span><span><span class="egg-choice-name">${type}</span><span class="egg-choice-cost">${firstEggFree?'FREE':'4 COINS'}</span></span></button>`).join('')}</div>`:'<p class="notice">Open the drawer to browse all nine classic eggs.</p>';
       return `<div class="section-heading" style="margin-top:15px"><h2>EGG DRAWER</h2><button class="quiet-button" id="toggle-drawer">${state.drawerOpen?'Close drawer':'Open drawer'}</button></div>
         <p class="section-note" style="display:block;margin-bottom:8px">GENTLE STORAGE · ${state.drawer.length}/5 EGGS</p>
-        ${state.drawer.length?`<div class="shop-list">${state.drawer.map((egg,index)=>`<div class="shop-item"><span class="egg-swatch" style="--egg-color:${eggColor(egg.type)};margin:auto"></span><div><div class="shop-name">${escapeHtml(typeLabel(egg.type))} egg</div><div class="shop-desc">Resting safely in the rack</div></div><button class="shop-buy" data-load-drawer="${index}" ${state.incubator||!state.ovenOpen?'disabled':''}>Load oven</button></div>`).join('')}</div>`:'<div class="empty-state">The rack is empty. Store an egg here to keep it safe and cool.</div>'}`;
+        ${classicEggs}${state.drawer.length?`<div class="section-heading" style="margin-top:13px"><h2>STORED EGGS</h2></div><div class="shop-list">${state.drawer.map((egg,index)=>`<div class="shop-item"><span class="egg-swatch" style="--egg-color:${eggColor(egg.type)};margin:auto"></span><div><div class="shop-name">${escapeHtml(typeLabel(egg.type))} egg</div><div class="shop-desc">Resting safely in the rack</div></div><button class="shop-buy" data-load-drawer="${index}" ${state.incubator||!state.ovenOpen?'disabled':''}>Load oven</button></div>`).join('')}</div>`:'<div class="empty-state">No eggs stored yet. Choose a classic egg above or store one from your bag.</div>'}`;
     }
     function escapeHtml(value) {
       return String(value).replace(/[&<>"']/g, char => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[char]));
@@ -312,6 +315,7 @@
       const incubator = state.incubator;
       const turns = incubator.turned || 0;
       const pct = Math.min(100, (incubator.day/5)*100);
+      if(incubator.hatching)return `<div class="panel-kicker">A BRAND NEW FRIEND</div><h1>Your egg is hatching!</h1><p class="panel-intro">The oven door is opening. Watch closely as your little dragon arrives.</p><div class="rule"></div><div class="dragon-card"><div class="stage-pill">DAY 5 COMPLETE</div><p class="notice">A warm glow, a little crack, and one very sleepy baby dragon...</p></div>`;
       const stateLabel=incubator.awaitTurn?'TURN THE EGG':state.ovenOpen?'DOOR OPEN · HEATING PAUSED':'BARS CLOSED · HEATING';
       return `<div class="panel-kicker">THE LITTLE FURNACE</div><h1>${incubator.awaitTurn?'Turn the egg':state.ovenOpen?'Oven door open':'Egg incubation'}</h1><p class="panel-intro">${incubator.awaitTurn?'The bars have lifted. Give the egg a gentle turn, then lower them to keep heating.':'Only an egg inside the oven warms. The drawer keeps the other eggs safe and cool.'}</p>
         <div class="rule"></div><div class="dragon-card" style="text-align:center;padding:17px">
@@ -354,8 +358,9 @@
       const dragon = selectedDragon();
       if (state.incubator) { panel.innerHTML = incubationPanel(); bindIncubator(); bindDrawer(); return; }
       const hasEggs=state.drawer.length>0;
+      const emptyEggView=state.drawerOpen?'<p class="notice">Choose a classic egg below to load it into the open oven.</p>':`${eggPicker()}<p class="notice">Your first egg is gently stored in the rack. Load it into the open oven when you are ready.</p>${readyEggsMarkup()}`;
       panel.innerHTML = `<div class="panel-kicker">WELCOME TO YOUR HATCHERY</div><h1>${dragon ? `Hello, ${escapeHtml(dragonName(dragon))}!` : hasEggs ? 'Your eggs are waiting' : 'Pick your first dragon egg'}</h1><p class="panel-intro">${dragon ? 'A good day to spend a little time together.' : hasEggs ? 'Eggs in the drawer stay cool and safe. Load one into the open oven when you are ready.' : 'Every dragon begins as an egg. Which little friend will you welcome?'} </p><div class="rule"></div>
-        ${dragon ? `${dragonPanel(dragon)}${readyEggsMarkup()}` : hasEggs ? readyEggsMarkup() : `${eggPicker()}<p class="notice">Your first egg is gently stored in the rack. Load it into the open oven when you are ready.</p>${readyEggsMarkup()}`}
+        ${dragon ? `${dragonPanel(dragon)}${readyEggsMarkup()}` : hasEggs ? readyEggsMarkup() : emptyEggView}
         ${drawerMarkup()}<div class="rule"></div>${inventoryMarkup()}`;
       if (!dragon) bindEggPicker(); else bindCare(dragon);
       bindReadyEggs(); bindDrawer();
@@ -417,15 +422,33 @@
         save();render();say('Egg placed inside the open oven. Lower the bars to heat.');
       }));
     }
+    function toggleDrawer() { state.drawerOpen=!state.drawerOpen;save();render(); }
+    function toggleOvenDoor() {
+      if(state.incubator?.awaitTurn){say('Turn the egg before lowering the bars.');return;}
+      state.ovenOpen=!state.ovenOpen;save();render();
+      say(state.ovenOpen?'The oven bars are raised.':'The bars are down. The oven is heating.');
+    }
+    function loadDrawerEgg(index) {
+      const egg=state.drawer[index];
+      if(!egg||state.incubator||!state.ovenOpen){say('Raise the oven bars and make room first.');return false;}
+      state.drawer.splice(index,1);state.drawerOpen=false;
+      state.incubator={type:egg.type,parents:egg.parents||egg.type.split('+'),day:0,elapsed:0,awaitTurn:false,turned:0,lastAt:Date.now()};
+      state.ovenOpen=true;save();render();say('Egg placed inside the open oven. Lower the bars to heat.');
+      return true;
+    }
+    function loadClassicEgg(type) {
+      if(state.incubator||!state.ovenOpen){say('Raise the oven bars and make room first.');return;}
+      const free=state.firstPick&&state.dragons.length===0&&state.drawer.length===0;
+      if(!free&&state.coins<4){say('You need 4 sun coins for a classic egg.');return;}
+      if(!free)state.coins-=4;
+      state.firstPick=false;state.drawerOpen=false;
+      state.incubator={type,parents:[type],day:0,elapsed:0,awaitTurn:false,turned:0,lastAt:Date.now()};
+      state.ovenOpen=true;save();render();say(`${type} egg placed inside the open oven. Lower the bars to heat.`);
+    }
     function bindDrawer() {
-      $('#toggle-drawer')?.addEventListener('click',()=>{state.drawerOpen=!state.drawerOpen;save();render();});
-      document.querySelectorAll('[data-load-drawer]').forEach(button=>button.addEventListener('click',()=>{
-        const index=Number(button.dataset.loadDrawer),egg=state.drawer[index];
-        if(!egg||state.incubator||!state.ovenOpen){say('Open the oven and make room first.');return;}
-        state.drawer.splice(index,1);state.drawerOpen=false;
-        state.incubator={type:egg.type,parents:egg.parents||egg.type.split('+'),day:0,elapsed:0,awaitTurn:false,turned:0,lastAt:Date.now()};
-        state.ovenOpen=true;save();render();say('Egg placed inside the open oven. Lower the bars to heat.');
-      }));
+      $('#toggle-drawer')?.addEventListener('click',toggleDrawer);
+      document.querySelectorAll('[data-load-drawer]').forEach(button=>button.addEventListener('click',()=>loadDrawerEgg(Number(button.dataset.loadDrawer))));
+      document.querySelectorAll('[data-load-classic]').forEach(button=>button.addEventListener('click',()=>loadClassicEgg(button.dataset.loadClassic)));
     }
     function addXp(dragon, amount) {
       const before = stageOf(dragon).name;
@@ -546,35 +569,56 @@
     let eggDrag=null, eggYaw=0, eggTilt=0;
     const eggCanvas=renderer.domElement;
     eggCanvas.setAttribute('aria-label','Dragon egg. Click and drag to turn it.');
-    function pointerHitsEgg(event){
+    function raycastPointer(event,targets){
       const bounds=eggCanvas.getBoundingClientRect();
       eggPointer.set((event.clientX-bounds.left)/bounds.width*2-1,-(event.clientY-bounds.top)/bounds.height*2+1);
       eggRaycaster.setFromCamera(eggPointer,camera);
-      return eggRaycaster.intersectObject(eggShell,false).length>0;
+      return eggRaycaster.intersectObjects(targets,false);
     }
     eggCanvas.addEventListener('pointerdown',event=>{
-      if(event.button!==0||!eggGroup.visible||!pointerHitsEgg(event))return;
-      event.preventDefault(); eggDrag={pointerId:event.pointerId,x:event.clientX,y:event.clientY,distance:0};
+      if(event.button!==0)return;
+      let action=null;
+      if(eggGroup.visible&&raycastPointer(event,[eggShell]).length)action={kind:'ovenEgg'};
+      if(!action){
+        const drawerHits=raycastPointer(event,drawerEggSlots.filter(slot=>slot.egg.visible).map(slot=>slot.shell));
+        if(drawerHits.length)action={kind:'drawerEgg',index:drawerEggSlots.findIndex(slot=>slot.shell===drawerHits[0].object)};
+      }
+      if(!action&&raycastPointer(event,[drawerPull,drawerFront]).length)action={kind:'drawer'};
+      if(!action&&raycastPointer(event,[ovenDoorHitArea]).length)action={kind:'ovenDoor'};
+      if(!action)return;
+      event.preventDefault(); eggDrag={...action,pointerId:event.pointerId,x:event.clientX,y:event.clientY,distance:0};
       eggCanvas.setPointerCapture(event.pointerId); eggCanvas.style.cursor='grabbing';
     });
     eggCanvas.addEventListener('pointermove',event=>{
       if(eggDrag){
         const dx=event.clientX-eggDrag.x,dy=event.clientY-eggDrag.y;
         eggDrag.x=event.clientX; eggDrag.y=event.clientY; eggDrag.distance+=Math.hypot(dx,dy);
-        eggYaw+=dx*.012; eggTilt=Math.max(-.62,Math.min(.62,eggTilt+dy*.01));
+        if(eggDrag.kind==='ovenEgg'){
+          eggYaw+=dx*.012;eggTilt=Math.max(-.62,Math.min(.62,eggTilt+dy*.01));
+        }else if(eggDrag.kind==='drawerEgg'&&drawerEggSlots[eggDrag.index]){
+          const egg=drawerEggSlots[eggDrag.index].egg;egg.rotation.y+=dx*.012;egg.rotation.x=Math.max(-.5,Math.min(.5,egg.rotation.x+dy*.01));
+        }
         return;
       }
-      eggCanvas.style.cursor=eggGroup.visible&&pointerHitsEgg(event)?'grab':'default';
+      const overEgg=eggGroup.visible&&raycastPointer(event,[eggShell]).length>0;
+      const overDrawerEgg=raycastPointer(event,drawerEggSlots.filter(slot=>slot.egg.visible).map(slot=>slot.shell)).length>0;
+      const overControl=raycastPointer(event,[drawerPull,drawerFront,ovenDoorHitArea]).length>0;
+      eggCanvas.style.cursor=overEgg||overDrawerEgg?'grab':overControl?'pointer':'default';
     });
     function releaseEgg(event){
       if(!eggDrag)return;
       const drag=eggDrag; eggDrag=null;
       if(eggCanvas.hasPointerCapture(drag.pointerId))eggCanvas.releasePointerCapture(drag.pointerId);
       eggCanvas.style.cursor='default';
-      if(drag.distance>14){
+      if(drag.kind==='ovenEgg'&&drag.distance>14){
         if(!turnEgg())say('Egg turned gently!');
-      }else if(state.incubator?.awaitTurn){say('Drag the egg to turn it.');}
-      else say('Egg picked up. Drag to turn it.');
+      }else if(drag.kind==='ovenEgg'&&state.incubator?.awaitTurn){say('Drag the egg to turn it.');}
+      else if(drag.kind==='ovenEgg')say('Egg picked up. Drag to turn it.');
+      else if(drag.kind==='drawerEgg'){
+        if(drag.distance<=14||raycastPointer(event,[ovenDoorHitArea]).length)loadDrawerEgg(drag.index);
+        else say('Drop the egg inside the open oven to load it.');
+      }else if(drag.distance<=14&&drag.kind==='drawer')toggleDrawer();
+      else if(drag.distance<=14&&drag.kind==='ovenDoor')toggleOvenDoor();
     }
     eggCanvas.addEventListener('pointerup',releaseEgg);
     eggCanvas.addEventListener('pointercancel',()=>{eggDrag=null;eggCanvas.style.cursor='default';});
@@ -583,6 +627,12 @@
       const band=new THREE.Mesh(new THREE.TorusGeometry(.44-i*.055,.045,7,32),new THREE.MeshStandardMaterial({color:'#ffd378',roughness:.36,metalness:.12}));
       band.position.y=.73+.38+i*.26; band.rotation.x=Math.PI/2; band.scale.x=.9; eggGroup.add(band); eggBands.push(band);
     }
+    const hatchShells=[];
+    for(let i=0;i<2;i++){
+      const shellGeometry=new THREE.LatheGeometry(eggProfile,32,i*Math.PI,Math.PI);
+      const shell=new THREE.Mesh(shellGeometry,eggShell.material.clone());shell.position.y=.73;shell.visible=false;shell.castShadow=true;eggGroup.add(shell);
+      hatchShells.push(shell);
+    }
     const sparkles=[];
     for(let i=0;i<5;i++){
       const star=new THREE.Mesh(new THREE.OctahedronGeometry(.09,0),new THREE.MeshBasicMaterial({color:'#fff4c4'}));
@@ -590,13 +640,14 @@
     }
     const dragonModel=new THREE.Group(); scene.add(dragonModel); dragonModel.visible=false;
     const dragonCore=new THREE.Group(); dragonModel.add(dragonCore);
+    const dragonBaseMeshes=[],dragonLegMeshes=[];
     function sph(parent,color,position,scale,roughness=.65){
       const mesh=new THREE.Mesh(new THREE.SphereGeometry(1,20,16),new THREE.MeshStandardMaterial({color,roughness}));
       mesh.position.set(...position); mesh.scale.set(...scale); mesh.castShadow=true; parent.add(mesh); return mesh;
     }
-    sph(dragonCore,'#588b55',[0,1.13,0],[.62,.52,.79]);
-    sph(dragonCore,'#c7d797',[0,.91,.16],[.44,.27,.54]);
-    const head=sph(dragonCore,'#588b55',[0,1.39,.72],[.48,.43,.48]);
+    dragonBaseMeshes.push(sph(dragonCore,'#588b55',[0,1.13,0],[.62,.52,.79]));
+    const dragonBelly=sph(dragonCore,'#c7d797',[0,.91,.16],[.44,.27,.54]);
+    dragonBaseMeshes.push(sph(dragonCore,'#588b55',[0,1.39,.72],[.48,.43,.48]));
     sph(dragonCore,'#91b763',[0,1.2,1.09],[.34,.2,.3]);
     const eyes=[];
     for(const side of [-1,1]){
@@ -604,10 +655,10 @@
       sph(dragonCore,'#364c39',[side*.27,1.47,1.01],[.035,.065,.028],.2);
       const horn=new THREE.Mesh(new THREE.ConeGeometry(.12,.38,8),new THREE.MeshStandardMaterial({color:'#ead9aa',roughness:.65}));
       horn.position.set(side*.29,1.77,.6); horn.rotation.z=side*-.22; horn.castShadow=true; dragonCore.add(horn);
-      const foot=sph(dragonCore,'#47784c',[side*.37,.72,.44],[.2,.3,.22]); foot.rotation.x=-.25;
+      const foot=sph(dragonCore,'#47784c',[side*.37,.72,.44],[.2,.3,.22]); foot.rotation.x=-.25;dragonLegMeshes.push(foot);
     }
     const tail=new THREE.Mesh(new THREE.ConeGeometry(.23,.9,10),new THREE.MeshStandardMaterial({color:'#588b55',roughness:.65}));
-    tail.position.set(0,1.02,-.94); tail.rotation.x=-Math.PI/2; tail.castShadow=true; dragonCore.add(tail);
+    tail.position.set(0,1.02,-.94); tail.rotation.x=-Math.PI/2; tail.castShadow=true; dragonCore.add(tail);dragonBaseMeshes.push(tail);
     const wingShape=new THREE.Shape(); wingShape.moveTo(0,0); wingShape.lineTo(1.42,.12); wingShape.lineTo(1.08,-.32); wingShape.lineTo(.73,-.17); wingShape.lineTo(.47,-.66); wingShape.lineTo(.22,-.3); wingShape.closePath();
     const wingPivots=[];
     for(const side of [-1,1]){
@@ -644,6 +695,8 @@
     const trimMat=new THREE.MeshStandardMaterial({color:'#d2ad69',roughness:.35,metalness:.35});
     const frameTop=roundedBox(2.42,.18,.16,.08,trimMat);frameTop.position.set(0,3.08,1.18);incubatorModel.add(frameTop);
     const frameBottom=roundedBox(2.42,.18,.16,.08,trimMat);frameBottom.position.set(0,1.17,1.18);incubatorModel.add(frameBottom);
+    const ovenDoorHitArea=new THREE.Mesh(new THREE.PlaneGeometry(2.04,1.82),new THREE.MeshBasicMaterial({transparent:true,opacity:0,colorWrite:false,depthWrite:false,side:THREE.DoubleSide}));
+    ovenDoorHitArea.position.set(0,2.12,1.52);incubatorModel.add(ovenDoorHitArea);
     for(const side of [-1,1]){
       const frameSide=roundedBox(.18,1.98,.16,.08,trimMat);frameSide.position.set(side*1.12,2.12,1.18);incubatorModel.add(frameSide);
       const innerWall=roundedBox(.14,1.84,2.12,.05,ovenMaterial);innerWall.position.set(side*1.05,2.12,0);incubatorModel.add(innerWall);
@@ -724,22 +777,41 @@
       eggShell.material.color.set(TYPES[main].color);
       eggBands[0].material.color.set(TYPES[accent].accent); eggBands[1].material.color.set(TYPES[forms[2]||accent].color);
       eggBands.forEach((band,index)=>{band.visible=forms.length>1||index===0;});
+      eggShell.visible=true;hatchShells.forEach((shell,index)=>{shell.visible=false;shell.material.color.set(TYPES[forms[index]||main].color);shell.position.set(0,.73,0);shell.rotation.set(0,0,0);});
       eggGroup.visible=true; dragonModel.visible=false; incubatorModel.visible=true;
       $('#view-tag').textContent=forms.length>1?'MULTI-EGG':'YOUR FIRST EGG';
     }
+    function dragonEgg(dragon){
+      if(dragon.eggType)return {type:dragon.eggType,parents:dragon.eggParents||dragon.eggType.split('+')};
+      const saved=state.hatchedEgg;
+      return saved&&(saved.dragonId===dragon.id||(!saved.dragonId&&dragon.id===state.selectedDragon))?saved:null;
+    }
     function setDragonLook(dragon){
       const forms=dragon.type.split('+'), first=TYPES[forms[0]]||TYPES.Fire, second=TYPES[forms[1]];
-      const base=first.color;
-      dragonCore.traverse(object=>{if(object.isMesh&&object.material?.color&&object.material.color.getHexString()==='588b55') object.material.color.set(base);});
+      const hatchedEgg=dragonEgg(dragon);
+      dragonBaseMeshes.forEach(mesh=>mesh.material.color.set(first.color));
+      dragonLegMeshes.forEach(mesh=>mesh.material.color.set(first.color).multiplyScalar(.78));
+      dragonBelly.material.color.set(first.accent);
       const wings=wingPivots.map(item=>item.pivot.children[0]);
       wings.forEach((wing,index)=>wing.material.color.set(index===1&&second?second.color:first.accent));
       fireGlow.color.set(first.accent);
       const stage=stageOf(dragon); dragonModel.scale.setScalar(stage.scale); dragonModel.visible=true;
-      eggGroup.visible=false; incubatorModel.visible=true; dragonModel.position.set(0,0,2.55);
+      eggGroup.visible=Boolean(hatchedEgg); incubatorModel.visible=true; dragonModel.position.set(0,0,hatchedEgg?4:2.08);
+      if(hatchedEgg){
+        const eggForms=hatchedEgg.parents?.length?hatchedEgg.parents:hatchedEgg.type.split('+'),eggMain=TYPES[eggForms[0]]||TYPES.Fire;
+        eggShell.visible=false;eggBands.forEach(band=>{band.visible=false;});
+        eggGroup.position.set(0,-.34,2.62);eggGroup.scale.setScalar(.82);eggGroup.rotation.set(0,0,0);
+        hatchShells.forEach((shell,index)=>{
+          const side=index===0?-1:1;shell.visible=true;shell.material.color.set((TYPES[eggForms[index]]||eggMain).color);
+          shell.position.set(side*.78,.76,0);shell.rotation.set(0,side*.08,side*.85);
+        });
+      }
       $('#view-tag').textContent=`${stage.name.toUpperCase()} DRAGON`;
     }
     function updateWorld(){
       const dragon=selectedDragon();
+      const hatchedEgg=dragon&&!state.incubator?dragonEgg(dragon):null;
+      camera.lookAt(0,hatchedEgg?.95:1.3,0);
       incubatorModel.visible=true;incubatorModel.position.set(0,0,-1.2);syncDrawerRack();
       if(state.incubator){
         eggGroup.visible=true; dragonModel.visible=false;
@@ -747,18 +819,18 @@
         nest.visible=false;
         $('#view-tag').textContent=state.ovenOpen?'BARS RAISED':'BARS CLOSED · HEATING'; $('#scene-title').textContent='The Little Furnace';
         $('#scene-subtitle').textContent='DAY '+Math.min(5,state.incubator.day)+' OF 5';
-        $('#scene-tip').innerHTML=state.incubator.awaitTurn?'<span class="spark">&#10022;</span>Drag the egg to turn it, or use the button':state.ovenOpen?'<span class="spark">&#10022;</span>Door open · heating paused':'<span class="spark">&#10022;</span>Bars down · the oven is holding heat';
+        $('#scene-tip').innerHTML=state.incubator.hatching?'<span class="spark">&#10022;</span>The hatch is beginning · watch the oven':state.incubator.awaitTurn?'<span class="spark">&#10022;</span>Drag the egg to turn · click the bars or drawer':state.ovenOpen?'<span class="spark">&#10022;</span>Click bars to heat · drag egg to inspect':'<span class="spark">&#10022;</span>Click bars to open · egg is heating';
       }else if(dragon){
         nest.visible=false; setDragonLook(dragon);
         $('#scene-title').textContent='The Fernlight Hatchery'; $('#scene-subtitle').textContent=state.drawer.length?'EGGS REST SAFELY IN THE DRAWER':'A SAFE PLACE TO GROW';
-        $('#scene-tip').innerHTML=`<span class="spark">&#10022;</span>${escapeHtml(dragonName(dragon))} is ready for a little care`;
+        $('#scene-tip').innerHTML=state.drawer.length?`<span class="spark">&#10022;</span>${escapeHtml(dragonName(dragon))} · click drawer eggs to load`:`<span class="spark">&#10022;</span>${escapeHtml(dragonName(dragon))} · click the oven bars or drawer handle`;
       }else{
         nest.visible=!state.drawer.length; dragonModel.visible=false;
         if(state.drawer.length){eggGroup.visible=false;}
         else{const type=state.selectedEgg||'Fire';setEggLook(type,[type]);eggGroup.position.set(0,.3,2.35);eggGroup.scale.setScalar(1);}
         $('#view-tag').textContent=state.drawer.length?'EGG DRAWER':'YOUR FIRST EGG';
         $('#scene-title').textContent='The Fernlight Hatchery'; $('#scene-subtitle').textContent=state.drawer.length?'EGGS REST SAFELY IN THE DRAWER':'A SAFE PLACE TO BEGIN';
-        $('#scene-tip').innerHTML=state.drawer.length?'<span class="spark">&#10022;</span>Eggs are resting gently in the rack':state.selectedEgg?`<span class="spark">&#10022;</span>${TYPES[state.selectedEgg].skill} egg selected · drag to inspect`:'<span class="spark">&#10022;</span>Pick an egg and drag it to inspect';
+        $('#scene-tip').innerHTML=state.drawer.length?'<span class="spark">&#10022;</span>Click an egg to load · drag it into the oven':state.firstPick&&state.drawerOpen?'<span class="spark">&#10022;</span>Click a classic egg in the drawer to load it':state.firstPick?'<span class="spark">&#10022;</span>Open the drawer to browse all nine eggs':state.selectedEgg?`<span class="spark">&#10022;</span>${TYPES[state.selectedEgg].skill} egg · drag to inspect`:'<span class="spark">&#10022;</span>Pick an egg and drag to inspect';
       }
       sparkles.forEach(star=>{star.visible=!dragon&&!state.incubator&&!state.drawer.length;});
     }
@@ -769,32 +841,73 @@
       obstacleLight.color.set(TYPES[type].accent); obstacleUntil=elapsed+1.35; practiceObstacle.visible=true;
     }
     function tickIncubator(dt){
-      if(!state.incubator||state.ovenOpen||state.incubator.awaitTurn)return;
+      if(!state.incubator)return;
+      if(state.incubator.hatching){advanceHatch(dt);return;}
+      if(state.ovenOpen||state.incubator.awaitTurn)return;
       const inc=state.incubator; inc.elapsed+=dt;
       const newDay=Math.floor(inc.elapsed/8);
       if(newDay>inc.day){
         inc.day=Math.min(newDay,5);
         if(inc.day<5&&inc.day%2===0){inc.awaitTurn=true;state.ovenOpen=true;}
         if(inc.day>=5){
-          const dragon={id:state.nextId++,type:inc.type,parents:inc.parents||inc.type.split('+'),xp:0,skillXp:0,hunger:72,joy:78,energy:92,name:''};
-          state.dragons.push(dragon);state.selectedDragon=dragon.id;state.incubator=null;state.ovenOpen=true;state.firstPick=false;
-          say('Crack! Your dragon hatched!'); currentView='home';
+          const parents=inc.parents||inc.type.split('+');
+          inc.hatching={elapsed:0,dragon:{id:state.nextId++,type:inc.type,parents,eggType:inc.type,eggParents:parents,xp:0,skillXp:0,hunger:72,joy:78,energy:92,name:''}};
+          state.ovenOpen=true;eggYaw=0;eggTilt=0;say('Your egg is ready to hatch!');
         }
         save();render();
       }
       inc.lastAt=Date.now();
     }
+    function advanceHatch(dt){
+      const incubator=state.incubator,hatch=incubator.hatching;
+      hatch.elapsed+=dt;
+      const smooth=value=>{const t=THREE.MathUtils.clamp(value,0,1);return t*t*(3-2*t);};
+      const move=smooth((hatch.elapsed-.85)/1.25);
+      const groundY=-.34,groundZ=2.3;
+      eggGroup.position.set(0,THREE.MathUtils.lerp(.76,groundY,move),THREE.MathUtils.lerp(-.48,groundZ,move));
+      eggGroup.rotation.z=-.9*move;
+      if(hatch.elapsed>=2.1){
+        eggShell.visible=false;eggBands.forEach(band=>{band.visible=false;});
+        const crack=smooth((hatch.elapsed-2.1)/.8);
+        eggGroup.rotation.z=-.9*move*(1-crack);
+        hatchShells.forEach((shell,index)=>{
+          const side=index===0?-1:1;shell.visible=true;
+          shell.position.set(side*.78*crack,.73+.03*crack,0);
+          shell.rotation.z=side*.85*crack;shell.rotation.y=side*.08*crack;
+        });
+      }
+      const reveal=smooth((hatch.elapsed-2.55)/.7);
+      dragonModel.visible=reveal>0;
+      const stepOut=smooth((hatch.elapsed-3.45)/1.1);
+      dragonModel.position.set(0,-.04,THREE.MathUtils.lerp(2.65,4,stepOut));
+      dragonModel.scale.setScalar(stageOf(hatch.dragon).scale*Math.max(.01,reveal));
+      const unfurl=smooth((hatch.elapsed-2.9)/.95);
+      wingPivots.forEach(({pivot,side})=>{
+        pivot.rotation.z=side*(1.1*(1-unfurl)+(.14+Math.sin(elapsed*7)*.16)*unfurl);
+      });
+      const stretch=smooth((hatch.elapsed-3.15)/.42)*(1-smooth((hatch.elapsed-4.1)/.45));
+      dragonCore.scale.set(1,1+stretch*.24,1);
+      dragonCore.position.y=.02+stretch*.14;
+      if(hatch.elapsed>=4.8){
+        state.dragons.push(hatch.dragon);state.selectedDragon=hatch.dragon.id;
+        state.incubator=null;state.ovenOpen=true;state.firstPick=false;state.hatchedEgg={dragonId:hatch.dragon.id,type:hatch.dragon.eggType,parents:hatch.dragon.eggParents};
+        dragonCore.scale.set(1,1,1);dragonCore.position.y=0;setDragonLook(hatch.dragon);
+        currentView='home';save();render();say('Crack! Your dragon hatched!');
+      }
+    }
     function animate(){
       requestAnimationFrame(animate);
       const dt=Math.min(clock.getDelta(),.05);elapsed+=dt;
       if(state.incubator)tickIncubator(dt);
-      eggGroup.position.y=(state.incubator?.76:.3)+Math.sin(elapsed*2)*.045;
-      eggGroup.rotation.y=eggYaw+Math.sin(elapsed*.35)*.12;
+      if(!state.incubator?.hatching)eggGroup.position.y=(state.incubator?.76:.3)+Math.sin(elapsed*2)*.045;
+      eggGroup.rotation.y=eggYaw+(state.incubator?.hatching?0:Math.sin(elapsed*.35)*.12);
       eggGroup.rotation.x=eggTilt;
       eggBands.forEach((band,index)=>{band.rotation.z=elapsed*(index%2?.18:-.14);});
       sparkles.forEach((star,index)=>{star.position.y=1.2+(index%3)*.4+Math.sin(elapsed*2+index)*.13;star.rotation.y+=dt;});
-      wingPivots.forEach(({pivot,side})=>{pivot.rotation.z=side*(.14+Math.sin(elapsed*7)*.28);});
-      dragonCore.position.y=.02+Math.sin(elapsed*2.6)*.035;
+      if(!state.incubator?.hatching){
+        wingPivots.forEach(({pivot,side})=>{pivot.rotation.z=side*(.14+Math.sin(elapsed*7)*.28);});
+        dragonCore.position.y=.02+Math.sin(elapsed*2.6)*.035;
+      }
       dragonCore.rotation.y=Math.sin(elapsed*.55)*.17;
       fireGlow.intensity=1.2+Math.sin(elapsed*4)*.45;
       ovenDoorBars.position.y=THREE.MathUtils.damp(ovenDoorBars.position.y,state.ovenOpen?3.9:2.12,8,dt);
